@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Itinéraire Bali · Lombok · Gili · Nusa Penida</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=DM+Sans:wght@400;500;700&display=swap');
+
+  :root{
+    --ink:#12312d;
+    --sea:#0f6b64;
+    --sand:#f2ead9;
+    --paper:#fbf8f1;
+    --coral:#e8602c;
+    --line:#c9bfa4;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0;}
+
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'DM Sans', sans-serif;
+    padding:30px 38px;
+    font-size:12.5px;
+  }
+
+  .sheet{ max-width:1200px; margin:0 auto; }
+
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    border-bottom:3px solid var(--ink);
+    padding-bottom:12px;
+    margin-bottom:26px;
+  }
+
+  h1{
+    font-family:'Fraunces', serif;
+    font-weight:700;
+    font-size:28px;
+    letter-spacing:-0.01em;
+  }
+  h1 span{ color:var(--sea); font-style:italic; font-weight:400; }
+
+  .dates{ font-size:12.5px; text-align:right; line-height:1.5; }
+  .dates b{ color:var(--sea); }
+
+  h2.section{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:17px;
+    color:var(--sea);
+    margin:24px 0 10px 0;
+    border-bottom:1px solid var(--line);
+    padding-bottom:6px;
+    display:flex;
+    align-items:baseline;
+    gap:8px;
+  }
+  h2.section small{ font-family:'DM Sans'; font-size:11px; font-weight:400; color:#7a8a86; }
+
+  /* --- Map --- */
+  .map-wrap{ background:#eaf3f1; border:1px solid var(--line); border-radius:14px; padding:10px; margin-top:8px; }
+  #map{ width:100%; height:520px; border-radius:9px; }
+  .map-pin{
+    display:flex; align-items:center; justify-content:center;
+    width:22px; height:22px; border-radius:50%;
+    background:var(--sea); border:2px solid var(--paper);
+    color:white; font-family:'DM Sans'; font-weight:700; font-size:10.5px;
+    box-shadow:0 1px 4px rgba(0,0,0,.3); cursor:pointer;
+  }
+  .map-pin.big{ width:32px; height:32px; font-size:12.5px; background:var(--coral); border-width:2.5px; }
+  .leg-icon{
+    display:flex; align-items:center; justify-content:center;
+    width:22px; height:22px; border-radius:50%;
+    background:var(--paper); border:1.5px solid var(--coral);
+    font-size:12px;
+  }
+  .map-info{
+    margin-top:8px; padding:9px 12px;
+    background:white; border:1px solid var(--line); border-radius:8px;
+    font-size:11.5px; color:var(--ink); min-height:16px;
+  }
+  .map-legend{ display:flex; gap:18px; align-items:center; flex-wrap:wrap; padding:9px 4px 2px 4px; font-size:10.5px; color:var(--ink); }
+  .map-legend span{ display:flex; align-items:center; gap:6px; }
+  .leg-dot-sm{ width:11px; height:11px; border-radius:50%; background:var(--sea); border:2px solid white; box-shadow:0 0 0 1px var(--line); display:inline-block; }
+  .leg-dot-lg{ width:15px; height:15px; border-radius:50%; background:var(--coral); border:2px solid white; box-shadow:0 0 0 1px var(--line); display:inline-block; }
+  .map-reset{ margin-left:auto; cursor:pointer; font-weight:700; color:var(--sea); text-decoration:underline; text-underline-offset:2px; }
+
+  /* --- Route timeline --- */
+  .route{ position:relative; display:flex; align-items:flex-start; gap:0; margin:34px 0 6px 0; }
+  .stop{ flex:1; position:relative; display:flex; flex-direction:column; align-items:center; text-align:center; }
+
+  .node{ width:16px; height:16px; border-radius:50%; background:var(--paper); border:3px solid var(--sea); z-index:2; }
+  .track{ position:absolute; top:8px; left:50%; width:100%; height:3px; background:repeating-linear-gradient(to right, var(--line) 0 8px, transparent 8px 14px); z-index:1; }
+  .stop:last-child .track{ display:none; }
+
+  .transport{ position:absolute; top:-20px; left:50%; width:100%; text-align:center; font-size:15px; z-index:3; }
+  .transport-label{ position:absolute; top:-34px; left:50%; width:100%; text-align:center; font-size:9px; color:var(--sea); font-weight:700; text-transform:uppercase; letter-spacing:.03em; white-space:nowrap; }
+
+  .place{ font-family:'Fraunces', serif; font-weight:600; font-size:15px; margin-top:9px; }
+  .sub{ font-size:10.5px; color:#4d6864; margin-top:2px; }
+  .date-badge{ display:inline-block; margin-top:6px; background:var(--sand); border:1px solid var(--line); border-radius:20px; padding:2px 9px; font-size:10px; font-weight:700; }
+
+  /* --- Highlighted big-dot stops (Ubud / Uluwatu / Canggu) --- */
+  .stop.big .node{
+    width:28px; height:28px;
+    border-width:5px;
+    border-color:var(--coral);
+    background:var(--coral);
+    box-shadow:0 0 0 5px rgba(232,96,44,0.18);
+  }
+  .stop.big .track{ top:13px; }
+  .stop.big .place{ font-size:17px; color:var(--coral); }
+  .stop.big .transport{ top:-24px; }
+  .stop.big .transport-label{ top:-38px; }
+
+  /* --- Legs table --- */
+  table.legs{ width:100%; border-collapse:collapse; margin-top:4px; }
+  table.legs th{ text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:var(--sea); border-bottom:2px solid var(--ink); padding:5px 7px; }
+  table.legs td{ font-size:11.5px; padding:8px 7px; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.4; }
+  table.legs tr:nth-child(even) td{ background:#f5f0e2; }
+  .mode-badge{ display:inline-block; font-size:10px; font-weight:700; padding:1px 7px; border-radius:10px; background:var(--sea); color:white; white-space:nowrap; }
+  .price{ font-weight:700; color:var(--coral); }
+
+  /* --- Stay details --- */
+  .details{ display:grid; grid-template-columns:repeat(8, 1fr); gap:9px; margin-top:6px; }
+  .card{ background:white; border:1px solid var(--line); border-radius:9px; padding:10px 9px; font-size:10.5px; line-height:1.45; }
+  .card.big{ border:1.5px solid var(--coral); }
+  .card h3{ font-family:'Fraunces', serif; font-size:12px; font-weight:600; color:var(--sea); margin-bottom:4px; }
+  .card.big h3{ color:var(--coral); }
+  .card ul{ padding-left:13px; }
+  .card .nuits{ font-size:9px; color:var(--coral); font-weight:700; margin-top:5px; }
+
+  .after{ margin-top:22px; border-top:2px dashed var(--line); padding-top:12px; display:flex; justify-content:space-between; gap:18px; }
+  .after .block{ flex:1; }
+  .after h3{ font-family:'Fraunces', serif; font-size:13.5px; font-weight:600; margin-bottom:4px; color:var(--sea); }
+  .after p{ font-size:10.5px; color:#4d6864; line-height:1.45; }
+
+  .legend{ margin-top:16px; display:flex; gap:18px; font-size:10.5px; color:#4d6864; align-items:center; flex-wrap:wrap; }
+  .legend span{ display:flex; align-items:center; gap:5px; }
+  .dot-sm{ width:9px; height:9px; border-radius:50%; border:2px solid var(--sea); display:inline-block; }
+  .dot-lg{ width:13px; height:13px; border-radius:50%; background:var(--coral); border:2px solid var(--coral); display:inline-block; }
+
+  .sources{ margin-top:18px; font-size:9px; color:#7a8a86; border-top:1px solid var(--line); padding-top:7px; }
+
+  @media print{
+    body{ padding:10px 16px; font-size:10.5px; }
+    .card{ break-inside:avoid; }
+    @page{ size:A4 landscape; margin:8mm; }
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <header>
+    <h1>Bali <span>&amp;</span> les îles<br>— itinéraire détaillé —</h1>
+    <div class="dates">
+      <div><b>20 sept, 17h → 3 oct</b> · à deux</div>
+      <div>puis solo jusqu'au <b>10 oct</b></div>
+    </div>
+  </header>
+
+  <h2 class="section">Carte du parcours <small>— clique sur une étape pour voir d'où tu viens et où tu vas</small></h2>
+  <div class="map-wrap">
+    <div id="map"></div>
+    <div class="map-info" id="mapInfo">Clique sur une étape numérotée pour la mettre en évidence.</div>
+    <div class="map-legend">
+      <span><i class="leg-dot-sm"></i> étape</span>
+      <span><i class="leg-dot-lg"></i> temps fort (Ubud / Uluwatu / Canggu)</span>
+      <span>✈ vol · 🚗 route · ⛴ bateau</span>
+      <span class="map-reset" id="mapReset">↺ tout afficher</span>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const stops = [
+      { n:1, name:"Denpasar",     sub:"17h · 1 nuit",   lat:-8.6559, lng:115.2168, big:false },
+      { n:2, name:"Kuta Lombok",  sub:"2 nuits",         lat:-8.8879, lng:116.2838, big:false },
+      { n:3, name:"Senggigi",     sub:"2 nuits",         lat:-8.4886, lng:116.0414, big:false },
+      { n:4, name:"Gili Air",     sub:"2 nuits",         lat:-8.3590, lng:116.0813, big:false },
+      { n:5, name:"Nusa Penida",  sub:"1 nuit",          lat:-8.7514, lng:115.4732, big:false },
+      { n:6, name:"Sanur",        sub:"escale bateau",   lat:-8.7072, lng:115.2626, big:false },
+      { n:7, name:"Ubud",         sub:"2 nuits",         lat:-8.5069, lng:115.2625, big:true },
+      { n:8, name:"Uluwatu",      sub:"2 nuits",         lat:-8.8291, lng:115.0849, big:true },
+      { n:9, name:"Canggu",       sub:"1 nuit",          lat:-8.6490, lng:115.1379, big:true }
+    ];
+
+    // [from, to, mode]
+    const legs = [
+      [0,1,"avion"],
+      [1,2,"route"],
+      [2,3,"bateau"],
+      [3,4,"bateau"],
+      [4,5,"bateau"],
+      [5,6,"route"],
+      [6,7,"route"],
+      [7,8,"route"]
+    ];
+
+    const map = L.map('map', { scrollWheelZoom:false }).setView([-8.62,115.7], 9);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap, &copy; CARTO',
+      maxZoom: 18, subdomains:"abcd"
+    }).addTo(map);
+
+    const dash = { avion:"1,8", bateau:"1,8", route:"9,7" };
+    const icon = { avion:"✈", bateau:"⛴", route:"🚗" };
+
+    const lines = [];
+    const iconMarkers = [];
+    const pinMarkers = [];
+
+    legs.forEach(([a,b,mode], i)=>{
+      const from = stops[a], to = stops[b];
+      const line = L.polyline([[from.lat,from.lng],[to.lat,to.lng]], {
+        color:"#e8602c", weight:3, dashArray:dash[mode], opacity:0.85
+      }).addTo(map);
+      lines.push(line);
+
+      const midLat=(from.lat+to.lat)/2, midLng=(from.lng+to.lng)/2;
+      const im = L.marker([midLat,midLng], {
+        icon: L.divIcon({
+          className:"",
+          html:`<div class="leg-icon">${icon[mode]}</div>`,
+          iconSize:[22,22], iconAnchor:[11,11]
+        }),
+        interactive:false
+      }).addTo(map);
+      iconMarkers.push(im);
+    });
+
+    function resetView(){
+      lines.forEach(l=>l.setStyle({opacity:0.85}));
+      iconMarkers.forEach(im=>im.setOpacity(1));
+      pinMarkers.forEach(p=>p.setOpacity(1));
+      document.getElementById('mapInfo').innerHTML = "Clique sur une étape numérotée pour la mettre en évidence.";
+    }
+
+    function selectStop(idx){
+      const connectedLegs = [];
+      legs.forEach((leg,i)=>{ if(leg[0]===idx || leg[1]===idx) connectedLegs.push(i); });
+      const neighborSet = new Set([idx]);
+      connectedLegs.forEach(i=>{ neighborSet.add(legs[i][0]); neighborSet.add(legs[i][1]); });
+
+      lines.forEach((l,i)=> l.setStyle({ opacity: connectedLegs.includes(i) ? 1 : 0.12 }));
+      iconMarkers.forEach((im,i)=> im.setOpacity(connectedLegs.includes(i) ? 1 : 0.15));
+      pinMarkers.forEach((p,i)=> p.setOpacity(neighborSet.has(i) ? 1 : 0.25));
+
+      const prevLeg = legs.find(l=>l[1]===idx);
+      const nextLeg = legs.find(l=>l[0]===idx);
+      const from = prevLeg ? stops[prevLeg[0]].name : null;
+      const to = nextLeg ? stops[nextLeg[1]].name : null;
+      let html = `<b>${stops[idx].n}. ${stops[idx].name}</b> — ${stops[idx].sub}<br>`;
+      html += from ? `depuis <b>${from}</b>` : "départ du séjour";
+      html += " → ";
+      html += to ? `vers <b>${to}</b>` : "fin de cette portion";
+      document.getElementById('mapInfo').innerHTML = html;
+    }
+
+    stops.forEach((s,idx)=>{
+      const marker = L.marker([s.lat,s.lng], {
+        icon: L.divIcon({
+          className:"",
+          html:`<div class="map-pin${s.big?' big':''}">${s.n}</div>`,
+          iconSize: s.big?[32,32]:[22,22],
+          iconAnchor: s.big?[16,16]:[11,11]
+        })
+      }).addTo(map);
+      marker.bindTooltip(`${s.name} · ${s.sub}`, { direction:"top", offset:[0, s.big?-16:-11] });
+      marker.on('click', ()=> selectStop(idx));
+      pinMarkers.push(marker);
+    });
+
+    document.getElementById('mapReset').addEventListener('click', resetView);
+
+    const bounds = L.latLngBounds(stops.map(s=>[s.lat,s.lng]));
+    map.fitBounds(bounds, { padding:[36,36] });
+  </script>
+
+  <h2 class="section">Le parcours, étape par étape</h2>
+  <div class="route">
+    <div class="stop">
+      <div class="track"></div><div class="node"></div>
+      <div class="place">Denpasar</div><div class="sub">arrivée 17h</div>
+      <div class="date-badge">Dim 20/09</div>
+    </div>
+    <div class="stop">
+      <div class="track"></div>
+      <div class="transport-label">avion</div><div class="transport">✈</div>
+      <div class="node"></div>
+      <div class="place">Kuta Lombok</div><div class="sub">2 nuits</div>
+      <div class="date-badge">Lun 21 → Mer 23/09</div>
+    </div>
+    <div class="stop">
+      <div class="track"></div>
+      <div class="transport-label">taxi</div><div class="transport">🚗</div>
+      <div class="node"></div>
+      <div class="place">Senggigi</div><div class="sub">2 nuits</div>
+      <div class="date-badge">Mer 23 → Ven 25/09</div>
+    </div>
+    <div class="stop">
+      <div class="track"></div>
+      <div class="transport-label">bateau</div><div class="transport">⛴</div>
+      <div class="node"></div>
+      <div class="place">Gili Air</div><div class="sub">2 nuits</div>
+      <div class="date-badge">Ven 25 → Dim 27/09</div>
+    </div>
+    <div class="stop">
+      <div class="transport-label">bateau direct</div><div class="transport">⛴</div>
+      <div class="node"></div>
+      <div class="place">Nusa Penida</div><div class="sub">1 nuit</div>
+      <div class="date-badge">Dim 27 → Lun 28/09</div>
+    </div>
+  </div>
+
+  <div class="route" style="margin-top:10px;">
+    <div class="stop">
+      <div class="track"></div>
+      <div class="transport-label">bateau</div><div class="transport">⛴</div>
+      <div class="node"></div>
+      <div class="place">Sanur</div><div class="sub">arrivée bateau</div>
+      <div class="date-badge">Lun 28/09</div>
+    </div>
+    <div class="stop big">
+      <div class="track"></div>
+      <div class="transport-label">taxi</div><div class="transport">🚗</div>
+      <div class="node"></div>
+      <div class="place">Ubud</div><div class="sub">2 nuits</div>
+      <div class="date-badge">Lun 28 → Mer 30/09</div>
+    </div>
+    <div class="stop big">
+      <div class="track"></div>
+      <div class="transport-label">taxi</div><div class="transport">🚗</div>
+      <div class="node"></div>
+      <div class="place">Uluwatu</div><div class="sub">2 nuits</div>
+      <div class="date-badge">Mer 30/09 → Ven 02/10</div>
+    </div>
+    <div class="stop big">
+      <div class="transport-label">taxi</div><div class="transport">🚗</div>
+      <div class="node"></div>
+      <div class="place">Canggu</div><div class="sub">1 nuit</div>
+      <div class="date-badge">Ven 02 → Sam 03/10</div>
+    </div>
+  </div>
+
+  <h2 class="section">Détail des trajets</h2>
+  <table class="legs">
+    <tr>
+      <th style="width:15%">Trajet</th>
+      <th style="width:9%">Mode</th>
+      <th style="width:11%">Durée</th>
+      <th style="width:11%">Prix / pers.</th>
+      <th>Bon à savoir</th>
+    </tr>
+    <tr>
+      <td><b>Denpasar → Kuta Lombok</b><br>lun 21/09, matin</td>
+      <td><span class="mode-badge">✈ Avion</span></td>
+      <td>45-50 min</td>
+      <td class="price">≈ 35-55 €</td>
+      <td>Wings Air ou TransNusa, plusieurs vols/jour (DPS→LOP). Puis taxi/Grab aéroport→Kuta Lombok (~1h, ≈6-8 €).</td>
+    </tr>
+    <tr>
+      <td><b>Kuta Lombok → Senggigi</b><br>mer 23/09</td>
+      <td><span class="mode-badge">🚗 Taxi/Grab</span></td>
+      <td>~1h30-2h</td>
+      <td class="price">≈ 16-22 €</td>
+      <td>Pas de route directe rapide, passe souvent par Mataram. Navette partagée via une agence à Kuta possible aussi.</td>
+    </tr>
+    <tr>
+      <td><b>Senggigi → Gili Air</b><br>ven 25/09, matin</td>
+      <td><span class="mode-badge">⛴ Bateau</span></td>
+      <td>20-30 min<br><span style="color:#7a8a86">(depuis Bangsal)</span></td>
+      <td class="price">≈ 1,5-15 €</td>
+      <td>Taxi Senggigi→Bangsal (~15-20 min, ≈9 €) puis bateau public (bon marché) ou speedboat privé (direct, plus cher).</td>
+    </tr>
+    <tr>
+      <td><b>Gili Air → Nusa Penida</b><br>dim 27/09, matin</td>
+      <td><span class="mode-badge">⛴ Bateau direct</span></td>
+      <td>1h45-2h</td>
+      <td class="price">≈ 13-47 €</td>
+      <td>Semaya One (moins cher), BlueWater Express (plus rapide). Peu de rotations/jour — <b>réserver dès que la date est fixée</b>.</td>
+    </tr>
+    <tr>
+      <td><b>Nusa Penida → Sanur</b><br>lun 28/09, matin</td>
+      <td><span class="mode-badge">⛴ Bateau</span></td>
+      <td>30-45 min</td>
+      <td class="price">≈ 9-16 €</td>
+      <td>Nombreux départs/jour (Banjar Nyuh/Toyapakeh). Réserver la veille suffit hors haute saison ou cérémonies (Nyepi, Galungan).</td>
+    </tr>
+    <tr>
+      <td><b>Sanur → Ubud</b><br>lun 28/09</td>
+      <td><span class="mode-badge">🚗 Taxi</span></td>
+      <td>45 min - 1h30</td>
+      <td class="price">≈ 10-15 €</td>
+      <td>Bluebird (compteur) ou Grab/Gojek (prix fixe à l'avance, souvent moins cher). Trafic variable selon l'heure.</td>
+    </tr>
+    <tr>
+      <td><b>Ubud → Uluwatu</b><br>mer 30/09</td>
+      <td><span class="mode-badge">🚗 Taxi/privé</span></td>
+      <td>~1h30-2h</td>
+      <td class="price">≈ 18-22 €</td>
+      <td>Grab/Gojek restreints au centre d'Ubud (pickup hors centre conseillé) ; sinon voiture privée à réserver via l'hôtel.</td>
+    </tr>
+    <tr>
+      <td><b>Uluwatu → Canggu</b><br>ven 02/10</td>
+      <td><span class="mode-badge">🚗 Taxi</span> <span class="mode-badge" style="background:var(--coral)">⛴ Alt. bateau</span></td>
+      <td>40 min - 2h (route)<br>40 min (bateau)</td>
+      <td class="price">≈ 12-23 € (route)<br>≈ 15 € (bateau)</td>
+      <td>Route très embouteillée en fin de journée (Kuta, Seminyak, Kerobokan). Alternative : navette bateau "GoBoat" Uluwatu↔Canggu en ~40 min, évite le trafic.</td>
+    </tr>
+  </table>
+
+  <h2 class="section">Sur place</h2>
+  <div class="details">
+    <div class="card">
+      <h3>Denpasar</h3>
+      <ul><li>Nuit près de l'aéroport</li></ul>
+      <div class="nuits">1 nuit</div>
+    </div>
+    <div class="card">
+      <h3>Kuta Lombok</h3>
+      <ul><li>Tanjung Aan, Selong Belanak, Mawun</li></ul>
+      <div class="nuits">2 nuits</div>
+    </div>
+    <div class="card">
+      <h3>Senggigi</h3>
+      <ul><li>Sunset sur les volcans</li></ul>
+      <div class="nuits">2 nuits</div>
+    </div>
+    <div class="card">
+      <h3>Gili Air</h3>
+      <ul><li>Sans scooter/voiture</li><li>Tortues en snorkeling</li></ul>
+      <div class="nuits">2 nuits</div>
+    </div>
+    <div class="card">
+      <h3>Nusa Penida</h3>
+      <ul><li>Kelingking, Angel's Billabong</li><li>Routes difficiles</li></ul>
+      <div class="nuits">1 nuit</div>
+    </div>
+    <div class="card big">
+      <h3>Ubud</h3>
+      <ul><li>Rizières, temples</li><li>Grab restreint en centre-ville</li></ul>
+      <div class="nuits">2 nuits</div>
+    </div>
+    <div class="card big">
+      <h3>Uluwatu</h3>
+      <ul><li>Falaises, temple, surf</li><li>Sunset au temple d'Uluwatu</li></ul>
+      <div class="nuits">2 nuits</div>
+    </div>
+    <div class="card big">
+      <h3>Canggu</h3>
+      <ul><li>Ambiance beach club</li><li>Proche aéroport pour le retour</li></ul>
+      <div class="nuits">1 nuit</div>
+    </div>
+  </div>
+
+  <div class="after">
+    <div class="block">
+      <h3>Répartition Ubud/Uluwatu/Canggu</h3>
+      <p>Suggestion sur les 5 nuits restantes (2 / 2 / 1) — facile à ajuster selon vos envies une fois sur place.</p>
+    </div>
+    <div class="block">
+      <h3>Retour de ta copine</h3>
+      <p>Vol retour le 3 octobre depuis Denpasar — Canggu est l'étape la plus proche de l'aéroport pour finir.</p>
+    </div>
+    <div class="block">
+      <h3>Solo (3 → 10 oct)</h3>
+      <p>Semaine libre après son départ — à définir plus tard.</p>
+    </div>
+  </div>
+
+  <h2 class="section">Infos pratiques</h2>
+  <div class="details" style="grid-template-columns:repeat(4,1fr);">
+    <div class="card">
+      <h3>Argent</h3>
+      <ul><li>Cash (IDR) pour taxis locaux, warung, bateaux publics</li><li>Cartes acceptées dans hôtels/restos touristiques</li><li>DAB dans les villes, pas sur Gili Air/Nusa Penida rural</li></ul>
+    </div>
+    <div class="card">
+      <h3>Connexion</h3>
+      <ul><li>eSIM à activer avant le départ (Airalo, Holafly...)</li><li>Wifi correct dans la plupart des hébergements</li></ul>
+    </div>
+    <div class="card">
+      <h3>À prévoir</h3>
+      <ul><li>Sarong pour les temples (Uluwatu, Tirta Empul...)</li><li>Chaussures fermées pour Kelingking/Nusa Penida (sentiers glissants)</li><li>Sac étanche pour les trajets en bateau</li></ul>
+    </div>
+    <div class="card">
+      <h3>Sur place</h3>
+      <ul><li>Ne pas marcher sur les offrandes (canang sari) au sol</li><li>Casque obligatoire en scooter, permis international conseillé</li><li>Éviter de nager où les locaux ne se baignent pas (courants)</li></ul>
+    </div>
+  </div>
+
+  <div class="sources">
+    Estimations de prix et durées à titre indicatif (tarifs 2026, sujets à variation selon saison/opérateur) — sources : Ferryhopper, DirectFerries, Skyscanner/Airpaz, 12Go, GeckoRoutes, WeWillNomad, BaliHolidaySecrets, Kiwitaxi, UbudCenter.
+  </div>
+
+</div>
+</body>
+</html>
