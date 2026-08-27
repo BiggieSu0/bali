@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <title>Itinéraire Bali · Lombok · Gili · Nusa Penida</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="manifest" href="manifest.json"/>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=DM+Sans:wght@400;500;700&display=swap');
 
@@ -147,6 +148,62 @@
 
   .sources{ margin-top:18px; font-size:9px; color:#7a8a86; border-top:1px solid var(--line); padding-top:7px; }
 
+  /* --- Online/offline badge --- */
+  .status-badge{
+    font-size:10.5px; font-weight:700; padding:3px 10px; border-radius:20px;
+    display:inline-flex; align-items:center; gap:5px; margin-top:6px;
+  }
+  .status-badge.online{ background:#dcefe0; color:#1f7a3d; }
+  .status-badge.offline{ background:#fbe2d3; color:#a3450f; }
+  .status-dot{ width:7px; height:7px; border-radius:50%; background:currentColor; display:inline-block; }
+
+  /* --- Checklist --- */
+  .checklist-progress{
+    display:flex; align-items:center; gap:10px; margin-bottom:12px; font-size:11.5px; color:var(--sea); font-weight:700;
+  }
+  .checklist-bar{ flex:1; height:8px; background:var(--sand); border-radius:6px; overflow:hidden; }
+  .checklist-bar-fill{ height:100%; background:var(--coral); width:0%; transition:width .3s; }
+  .checklist-cols{ display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
+  .checklist-cat h4{ font-family:'Fraunces', serif; font-size:12.5px; color:var(--sea); margin-bottom:6px; }
+  .checklist-item{ display:flex; align-items:flex-start; gap:6px; font-size:11px; margin-bottom:5px; cursor:pointer; line-height:1.35; }
+  .checklist-item input{ margin-top:2px; accent-color:var(--coral); cursor:pointer; }
+  .checklist-item.checked span{ text-decoration:line-through; color:#9aa8a4; }
+
+  /* --- Contacts / hébergements --- */
+  .contacts-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:14px; }
+  .contact-card{ background:white; border:1px solid var(--line); border-radius:9px; padding:11px 13px; font-size:11.5px; line-height:1.6; }
+  .contact-card h4{ font-family:'Fraunces', serif; font-size:13px; color:var(--sea); margin-bottom:4px; }
+  .contact-card b{ color:var(--coral); }
+  table.stay-table{ width:100%; border-collapse:collapse; font-size:11px; }
+  table.stay-table th{ text-align:left; font-size:9.5px; text-transform:uppercase; letter-spacing:.03em; color:var(--sea); border-bottom:2px solid var(--ink); padding:5px 6px; }
+  table.stay-table td{ border-bottom:1px solid var(--line); padding:5px 6px; }
+  table.stay-table input{
+    width:100%; border:1px solid var(--line); border-radius:5px; padding:3px 6px;
+    font-family:'DM Sans'; font-size:10.5px; background:var(--paper); color:var(--ink);
+  }
+  table.stay-table input:focus{ outline:1.5px solid var(--sea); background:white; }
+  .save-hint{ font-size:9.5px; color:#7a8a86; margin-top:5px; }
+
+  /* --- Converter --- */
+  .converter{ display:flex; align-items:flex-end; gap:10px; flex-wrap:wrap; background:white; border:1px solid var(--line); border-radius:10px; padding:14px; }
+  .converter .field{ display:flex; flex-direction:column; gap:3px; }
+  .converter label{ font-size:10px; color:var(--sea); font-weight:700; text-transform:uppercase; letter-spacing:.03em; }
+  .converter input, .converter select{
+    font-family:'DM Sans'; font-size:13px; padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink);
+  }
+  .converter .swap{ cursor:pointer; font-size:16px; padding-bottom:6px; color:var(--sea); user-select:none; }
+  .converter-result{ font-family:'Fraunces', serif; font-size:20px; font-weight:700; color:var(--coral); padding-bottom:4px; }
+  .converter-note{ font-size:9.5px; color:#7a8a86; margin-top:8px; }
+
+  /* --- Weather --- */
+  .weather-grid{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
+  .weather-card{ background:white; border:1px solid var(--line); border-radius:9px; padding:9px 8px; text-align:center; font-size:10.5px; }
+  .weather-card .wname{ font-family:'Fraunces', serif; font-weight:600; font-size:11.5px; margin-bottom:3px; }
+  .weather-card .wicon{ font-size:22px; margin:2px 0; }
+  .weather-card .wtemp{ font-weight:700; color:var(--coral); font-size:13px; }
+  .weather-card .wdesc{ color:#4d6864; font-size:9.5px; }
+  .weather-refresh{ font-size:10.5px; color:var(--sea); font-weight:700; text-decoration:underline; cursor:pointer; margin-bottom:8px; display:inline-block; }
+
   @media print{
     body{ padding:10px 16px; font-size:10.5px; }
     .card{ break-inside:avoid; }
@@ -162,6 +219,7 @@
     <div class="dates">
       <div><b>20 sept, 17h → 3 oct</b> · à deux</div>
       <div>puis solo jusqu'au <b>10 oct</b></div>
+      <div id="statusBadge" class="status-badge online"><i class="status-dot"></i> en ligne</div>
     </div>
   </header>
 
@@ -476,6 +534,70 @@
     </div>
   </div>
 
+  <h2 class="section">Checklist</h2>
+  <div class="checklist-progress">
+    <span id="checklistCount">0/0</span>
+    <div class="checklist-bar"><div class="checklist-bar-fill" id="checklistBar"></div></div>
+  </div>
+  <div class="checklist-cols" id="checklistGrid"></div>
+
+  <h2 class="section">Contacts d'urgence & infos par étape</h2>
+  <div class="contacts-grid">
+    <div class="contact-card">
+      <h4>Urgences générales (Indonésie)</h4>
+      Police : <b>110</b> &nbsp;·&nbsp; Ambulance : <b>118</b> / <b>119</b> &nbsp;·&nbsp; Pompiers : <b>113</b>
+    </div>
+    <div class="contact-card">
+      <h4>Agence consulaire de France — Bali</h4>
+      <b>+62 811 3960 1401</b><br>Griya Abasan No.18, Padangsambian Klod, Denpasar Barat<br>Lun-Ven 13h-17h
+    </div>
+    <div class="contact-card">
+      <h4>Ambassade de France — Jakarta (urgences)</h4>
+      <b>+62 811 1954 3123</b> (urgences consulaires)<br>+62 21 2355 8000 (standard)
+    </div>
+    <div class="contact-card">
+      <h4>Hôpitaux utiles</h4>
+      Bali : BIMC Kuta/Nusa Dua (clinique internationale), Sanglah (public, Denpasar)<br>Lombok : RSUD Provinsi NTB (Mataram)
+    </div>
+  </div>
+
+  <table class="stay-table">
+    <tr><th style="width:16%">Étape</th><th style="width:28%">Hébergement</th><th style="width:36%">Adresse</th><th style="width:20%">Téléphone</th></tr>
+    <tbody id="stayTableBody"></tbody>
+  </table>
+  <div class="save-hint">Rempli directement depuis ton téléphone une fois les réservations confirmées — sauvegardé automatiquement sur cet appareil, même hors-ligne.</div>
+
+  <h2 class="section">Convertisseur IDR ⇄ CHF / EUR</h2>
+  <div class="converter">
+    <div class="field">
+      <label>Montant</label>
+      <input type="number" id="convAmount" value="100000" min="0">
+    </div>
+    <div class="field">
+      <label>De</label>
+      <select id="convFrom">
+        <option value="IDR" selected>IDR (Rp)</option>
+        <option value="CHF">CHF</option>
+        <option value="EUR">EUR</option>
+      </select>
+    </div>
+    <div class="swap" id="convSwap">⇄</div>
+    <div class="field">
+      <label>Vers</label>
+      <select id="convTo">
+        <option value="CHF" selected>CHF</option>
+        <option value="EUR">EUR</option>
+        <option value="IDR">IDR (Rp)</option>
+      </select>
+    </div>
+    <div class="converter-result" id="convResult">—</div>
+  </div>
+  <div class="converter-note" id="convNote">Chargement du taux…</div>
+
+  <h2 class="section">Météo en direct</h2>
+  <span class="weather-refresh" id="weatherRefresh">↺ actualiser</span>
+  <div class="weather-grid" id="weatherGrid"></div>
+
   <h2 class="section">Infos pratiques</h2>
   <div class="details" style="grid-template-columns:repeat(4,1fr);">
     <div class="card">
@@ -501,5 +623,231 @@
   </div>
 
 </div>
+
+<script>
+  /* ---------- Statut en ligne / hors-ligne ---------- */
+  function updateStatus(){
+    const b = document.getElementById('statusBadge');
+    if(navigator.onLine){ b.className='status-badge online'; b.innerHTML='<i class="status-dot"></i> en ligne'; }
+    else{ b.className='status-badge offline'; b.innerHTML='<i class="status-dot"></i> hors-ligne (données en cache)'; }
+  }
+  window.addEventListener('online', updateStatus);
+  window.addEventListener('offline', updateStatus);
+  updateStatus();
+
+  /* ---------- Checklist ---------- */
+  const checklistData = {
+    "Documents": ["Passeport valide 6 mois après retour","Visa e-VOA / e-Visa fait","Assurance voyage souscrite","Permis de conduire international"],
+    "Santé": ["Vaccins à jour","Pharmacie de voyage","Anti-moustique / répulsif","Crème solaire indice élevé"],
+    "Argent": ["Banque prévenue du voyage","Un peu de cash IDR retiré à l'arrivée","Carte de secours séparée"],
+    "Techno": ["eSIM activée","Adaptateur prise + chargeurs","Powerbank chargée","Photos des documents sauvegardées"],
+    "Réservations": ["Vols internationaux","Vol Denpasar → Lombok","Bateau Gili Air → Nusa Penida","Hébergements confirmés"]
+  };
+
+  function loadChecklist(){ try{ return JSON.parse(localStorage.getItem('bali-checklist')||'{}'); }catch(e){ return {}; } }
+  function saveChecklist(state){ try{ localStorage.setItem('bali-checklist', JSON.stringify(state)); }catch(e){} }
+
+  function renderChecklist(){
+    const state = loadChecklist();
+    const grid = document.getElementById('checklistGrid');
+    grid.innerHTML = '';
+    let total=0, done=0;
+    Object.entries(checklistData).forEach(([cat, items])=>{
+      const col = document.createElement('div');
+      col.className = 'checklist-cat';
+      col.innerHTML = `<h4>${cat}</h4>`;
+      items.forEach((item,i)=>{
+        const id = cat+'-'+i;
+        total++;
+        const checked = !!state[id];
+        if(checked) done++;
+        const row = document.createElement('label');
+        row.className = 'checklist-item' + (checked?' checked':'');
+        row.innerHTML = `<input type="checkbox" ${checked?'checked':''} data-id="${id}"><span>${item}</span>`;
+        col.appendChild(row);
+      });
+      grid.appendChild(col);
+    });
+    document.getElementById('checklistCount').textContent = done+'/'+total;
+    document.getElementById('checklistBar').style.width = (total? (done/total*100):0)+'%';
+
+    grid.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+      cb.addEventListener('change', ()=>{
+        const s = loadChecklist();
+        s[cb.dataset.id] = cb.checked;
+        saveChecklist(s);
+        renderChecklist();
+      });
+    });
+  }
+  renderChecklist();
+
+  /* ---------- Hébergements par étape (édition libre, sauvegarde locale) ---------- */
+  const stayStops = ["Denpasar","Kuta Lombok","Senggigi","Gili Air","Nusa Penida","Ubud","Uluwatu","Canggu"];
+  function loadStays(){ try{ return JSON.parse(localStorage.getItem('bali-stays')||'{}'); }catch(e){ return {}; } }
+  function saveStays(state){ try{ localStorage.setItem('bali-stays', JSON.stringify(state)); }catch(e){} }
+
+  function renderStayTable(){
+    const state = loadStays();
+    const tbody = document.getElementById('stayTableBody');
+    tbody.innerHTML = '';
+    stayStops.forEach(name=>{
+      const s = state[name] || {};
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><b>${name}</b></td>
+        <td><input type="text" placeholder="nom" data-stop="${name}" data-field="hotel" value="${s.hotel||''}"></td>
+        <td><input type="text" placeholder="adresse" data-stop="${name}" data-field="address" value="${s.address||''}"></td>
+        <td><input type="text" placeholder="téléphone" data-stop="${name}" data-field="phone" value="${s.phone||''}"></td>
+      `;
+      tbody.appendChild(tr);
+    });
+    tbody.querySelectorAll('input').forEach(inp=>{
+      inp.addEventListener('input', ()=>{
+        const st = loadStays();
+        st[inp.dataset.stop] = st[inp.dataset.stop] || {};
+        st[inp.dataset.stop][inp.dataset.field] = inp.value;
+        saveStays(st);
+      });
+    });
+  }
+  renderStayTable();
+
+  /* ---------- Convertisseur IDR / CHF / EUR ---------- */
+  const FALLBACK_RATES_PER_IDR = { IDR:1, CHF:1/22050, EUR:1/20650 }; // secours si hors-ligne (référence août 2026)
+  let currentRates = null;
+
+  function getCachedRates(){ try{ return JSON.parse(localStorage.getItem('bali-rates')||'null'); }catch(e){ return null; } }
+  function setCachedRates(r){ try{ localStorage.setItem('bali-rates', JSON.stringify(r)); }catch(e){} }
+
+  function runConversion(){
+    const amount = parseFloat(document.getElementById('convAmount').value) || 0;
+    const from = document.getElementById('convFrom').value;
+    const to = document.getElementById('convTo').value;
+    const rates = currentRates || FALLBACK_RATES_PER_IDR;
+    const amountInIdr = amount / rates[from];
+    const result = amountInIdr * rates[to];
+    document.getElementById('convResult').textContent =
+      result.toLocaleString('fr-FR', {maximumFractionDigits: to==='IDR'?0:2}) + ' ' + to;
+  }
+
+  async function loadRates(){
+    const note = document.getElementById('convNote');
+    const cached = getCachedRates();
+    if(cached){ currentRates = cached.rates; runConversion(); }
+    try{
+      const res = await fetch('https://open.er-api.com/v6/latest/IDR');
+      const data = await res.json();
+      if(data && data.rates && data.rates.CHF && data.rates.EUR){
+        currentRates = { IDR:1, CHF:data.rates.CHF, EUR:data.rates.EUR };
+        setCachedRates({ rates: currentRates, ts: Date.now() });
+        note.textContent = 'Taux en direct — mis à jour à l\'instant.';
+        runConversion();
+        return;
+      }
+      throw new Error('format inattendu');
+    }catch(e){
+      if(cached){
+        const d = new Date(cached.ts);
+        note.textContent = 'Hors-ligne : dernier taux connu du ' + d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}) + '.';
+      } else {
+        currentRates = FALLBACK_RATES_PER_IDR;
+        note.textContent = 'Taux approximatif (référence août 2026) — connexion indisponible.';
+      }
+      runConversion();
+    }
+  }
+
+  document.getElementById('convAmount').addEventListener('input', runConversion);
+  document.getElementById('convFrom').addEventListener('change', runConversion);
+  document.getElementById('convTo').addEventListener('change', runConversion);
+  document.getElementById('convSwap').addEventListener('click', ()=>{
+    const f = document.getElementById('convFrom'), t = document.getElementById('convTo');
+    const tmp = f.value; f.value = t.value; t.value = tmp;
+    runConversion();
+  });
+  loadRates();
+
+  /* ---------- Météo en direct (Open-Meteo, sans clé) ---------- */
+  const weatherStops = [
+    {name:"Denpasar", lat:-8.6559, lng:115.2168},
+    {name:"Kuta Lombok", lat:-8.8879, lng:116.2838},
+    {name:"Senggigi", lat:-8.4886, lng:116.0414},
+    {name:"Gili Air", lat:-8.3590, lng:116.0813},
+    {name:"Nusa Penida", lat:-8.7514, lng:115.4732},
+    {name:"Ubud", lat:-8.5069, lng:115.2625},
+    {name:"Uluwatu", lat:-8.8291, lng:115.0849},
+    {name:"Canggu", lat:-8.6490, lng:115.1379}
+  ];
+
+  function weatherIcon(code){
+    if(code===0) return '☀️';
+    if([1,2].includes(code)) return '🌤️';
+    if(code===3) return '☁️';
+    if([45,48].includes(code)) return '🌫️';
+    if([51,53,55,56,57].includes(code)) return '🌦️';
+    if([61,63,65,66,67,80,81,82].includes(code)) return '🌧️';
+    if([95,96,99].includes(code)) return '⛈️';
+    return '🌈';
+  }
+  function weatherDesc(code){
+    if(code===0) return 'Ciel dégagé';
+    if([1,2].includes(code)) return 'Peu nuageux';
+    if(code===3) return 'Nuageux';
+    if([45,48].includes(code)) return 'Brume';
+    if([51,53,55,56,57].includes(code)) return 'Bruine';
+    if([61,63,65,66,67,80,81,82].includes(code)) return 'Pluie';
+    if([95,96,99].includes(code)) return 'Orage';
+    return '—';
+  }
+
+  function getCachedWeather(){ try{ return JSON.parse(localStorage.getItem('bali-weather')||'null'); }catch(e){ return null; } }
+  function setCachedWeather(w){ try{ localStorage.setItem('bali-weather', JSON.stringify(w)); }catch(e){} }
+
+  function renderWeather(data, offline){
+    const grid = document.getElementById('weatherGrid');
+    grid.innerHTML = '';
+    weatherStops.forEach(s=>{
+      const w = data[s.name];
+      const card = document.createElement('div');
+      card.className = 'weather-card';
+      if(w){
+        card.innerHTML = `<div class="wname">${s.name}</div><div class="wicon">${weatherIcon(w.code)}</div><div class="wtemp">${Math.round(w.temp)}°C</div><div class="wdesc">${weatherDesc(w.code)}</div>`;
+      } else {
+        card.innerHTML = `<div class="wname">${s.name}</div><div class="wicon">—</div><div class="wdesc">indisponible</div>`;
+      }
+      grid.appendChild(card);
+    });
+    document.getElementById('weatherRefresh').textContent = offline ? '↺ actualiser (hors-ligne — dernières données affichées)' : '↺ actualiser';
+  }
+
+  async function loadWeather(){
+    const cached = getCachedWeather();
+    if(cached) renderWeather(cached.data, false);
+    try{
+      const results = await Promise.all(weatherStops.map(async s=>{
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${s.lat}&longitude=${s.lng}&current=temperature_2m,weather_code&timezone=auto`);
+        const j = await res.json();
+        return [s.name, { temp:j.current.temperature_2m, code:j.current.weather_code }];
+      }));
+      const data = Object.fromEntries(results);
+      setCachedWeather({ data, ts: Date.now() });
+      renderWeather(data, false);
+    }catch(e){
+      if(cached) renderWeather(cached.data, true);
+      else document.getElementById('weatherGrid').innerHTML = '<div style="font-size:11px;color:#7a8a86;">Météo indisponible sans connexion pour le moment.</div>';
+    }
+  }
+  document.getElementById('weatherRefresh').addEventListener('click', loadWeather);
+  loadWeather();
+
+  /* ---------- Mode hors-ligne (service worker) ---------- */
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', ()=>{
+      navigator.serviceWorker.register('sw.js').catch(()=>{});
+    });
+  }
+</script>
+
 </body>
 </html>

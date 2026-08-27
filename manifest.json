@@ -1,0 +1,8 @@
+{
+  "name": "Voyage Bali & les îles",
+  "short_name": "Bali",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#fbf8f1",
+  "theme_color": "#0f6b64"
+}
