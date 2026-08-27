@@ -106,7 +106,7 @@
   .sub{ font-size:10.5px; color:#4d6864; margin-top:2px; }
   .date-badge{ display:inline-block; margin-top:6px; background:var(--sand); border:1px solid var(--line); border-radius:20px; padding:2px 9px; font-size:10px; font-weight:700; }
 
-  /* --- Highlighted big-dot stops (Ubud / Uluwatu / Canggu) --- */
+  /* --- Highlighted big-dot stop (Canggu) --- */
   .stop.big .node{
     width:28px; height:28px;
     border-width:5px;
@@ -182,7 +182,9 @@
   .weather-card .wicon{ font-size:22px; margin:2px 0; }
   .weather-card .wtemp{ font-weight:700; color:var(--coral); font-size:13px; }
   .weather-card .wdesc{ color:#4d6864; font-size:9.5px; }
+  .weather-card .wuv{ font-size:9px; font-weight:700; margin-top:4px; padding:1px 6px; border-radius:8px; display:inline-block; }
   .weather-refresh{ font-size:10.5px; color:var(--sea); font-weight:700; text-decoration:underline; cursor:pointer; margin-bottom:8px; display:inline-block; }
+  .weather-note{ font-size:9.5px; color:#7a8a86; margin-top:8px; }
 
   @media print{
     body{ padding:10px 16px; font-size:10.5px; }
@@ -209,7 +211,7 @@
     <div class="map-info" id="mapInfo">Clique sur une étape numérotée pour la mettre en évidence.</div>
     <div class="map-legend">
       <span><i class="leg-dot-sm"></i> étape</span>
-      <span><i class="leg-dot-lg"></i> temps fort (Canggu = base · Ubud / Uluwatu = excursions)</span>
+      <span><i class="leg-dot-lg"></i> temps fort (Canggu, base de fin de séjour)</span>
       <span>✈ vol · 🚗 route · ⛴ bateau</span>
       <span class="map-reset" id="mapReset">↺ tout afficher</span>
     </div>
@@ -224,9 +226,7 @@
       { n:4, name:"Gili Air",     sub:"2 nuits",             lat:-8.3590, lng:116.0813, big:false },
       { n:5, name:"Nusa Penida",  sub:"1 nuit",              lat:-8.7514, lng:115.4732, big:false },
       { n:6, name:"Sanur",        sub:"escale bateau",       lat:-8.7072, lng:115.2626, big:false },
-      { n:7, name:"Canggu",       sub:"5 nuits · base",      lat:-8.6490, lng:115.1379, big:true },
-      { n:8, name:"Ubud",         sub:"excursion journée",   lat:-8.5069, lng:115.2625, big:true, excursion:true },
-      { n:9, name:"Uluwatu",      sub:"excursion journée",   lat:-8.8291, lng:115.0849, big:true, excursion:true }
+      { n:7, name:"Canggu",       sub:"5 nuits · base",      lat:-8.6490, lng:115.1379, big:true }
     ];
 
     // [from, to, mode]
@@ -236,9 +236,7 @@
       [2,3,"bateau"],
       [3,4,"bateau"],
       [4,5,"bateau"],
-      [5,6,"route"],
-      [6,7,"route"],
-      [6,8,"route"]
+      [5,6,"route"]
     ];
 
     const map = L.map('map', { scrollWheelZoom:false }).setView([-8.62,115.7], 9);
@@ -291,16 +289,14 @@
       iconMarkers.forEach((im,i)=> im.setOpacity(connectedLegs.includes(i) ? 1 : 0.15));
       pinMarkers.forEach((p,i)=> p.setOpacity(neighborSet.has(i) ? 1 : 0.25));
 
-      const prevNames = legs.filter(l=>l[1]===idx).map(l=>stops[l[0]].name);
-      const nextNames = legs.filter(l=>l[0]===idx).map(l=>stops[l[1]].name);
+      const prevLeg = legs.find(l=>l[1]===idx);
+      const nextLeg = legs.find(l=>l[0]===idx);
+      const from = prevLeg ? stops[prevLeg[0]].name : null;
+      const to = nextLeg ? stops[nextLeg[1]].name : null;
       let html = `<b>${stops[idx].n}. ${stops[idx].name}</b> — ${stops[idx].sub}<br>`;
-      if(stops[idx].excursion){
-        html += `aller-retour depuis <b>${prevNames.join(', ') || 'Canggu'}</b> — retour le soir même`;
-      } else {
-        html += prevNames.length ? `depuis <b>${prevNames.join(', ')}</b>` : "départ du séjour";
-        html += " → ";
-        html += nextNames.length ? `vers <b>${nextNames.join(', ')}</b>` : "fin de cette portion";
-      }
+      html += from ? `depuis <b>${from}</b>` : "départ du séjour";
+      html += " → ";
+      html += to ? `vers <b>${to}</b>` : "fin de cette portion";
       document.getElementById('mapInfo').innerHTML = html;
     }
 
@@ -369,24 +365,10 @@
       <div class="date-badge">Lun 28/09</div>
     </div>
     <div class="stop big">
-      <div class="track"></div>
       <div class="transport-label">taxi</div><div class="transport">🚗</div>
       <div class="node"></div>
       <div class="place">Canggu</div><div class="sub">5 nuits · base</div>
       <div class="date-badge">Lun 28/09 → Sam 03/10</div>
-    </div>
-    <div class="stop big">
-      <div class="track"></div>
-      <div class="transport-label">aller-retour</div><div class="transport">🚗</div>
-      <div class="node"></div>
-      <div class="place">Ubud</div><div class="sub">excursion journée</div>
-      <div class="date-badge">Mar 29/09</div>
-    </div>
-    <div class="stop big">
-      <div class="transport-label">aller-retour</div><div class="transport">🚗</div>
-      <div class="node"></div>
-      <div class="place">Uluwatu</div><div class="sub">excursion journée · Kecak sunset</div>
-      <div class="date-badge">Mer 30/09</div>
     </div>
   </div>
 
@@ -442,14 +424,14 @@
       <td>Bluebird (compteur) ou Grab/Gojek (prix fixe à l'avance, souvent moins cher). Trajet direct le long de la côte.</td>
     </tr>
     <tr>
-      <td><b>Canggu → Ubud</b><br>mar 29/09, aller-retour</td>
+      <td><b>Canggu → Ubud</b><br>aller-retour</td>
       <td><span class="mode-badge">🚗 Taxi/privé</span></td>
       <td>~1h-1h30 (aller)</td>
       <td class="price">≈ 18-25 € (A/R)</td>
       <td>Grab/Gojek restreints au centre d'Ubud (pickup hors centre conseillé) ; mieux vaut réserver un chauffeur à la journée pour rizières + temples sans contrainte horaire.</td>
     </tr>
     <tr>
-      <td><b>Canggu → Uluwatu</b><br>mer 30/09, aller-retour</td>
+      <td><b>Canggu → Uluwatu</b><br>aller-retour</td>
       <td><span class="mode-badge">🚗 Taxi/privé</span></td>
       <td>~45 min-1h15 (aller)</td>
       <td class="price">≈ 20-28 € (A/R)</td>
@@ -526,6 +508,7 @@
   <h2 class="section">Météo en direct</h2>
   <span class="weather-refresh" id="weatherRefresh">↺ actualiser</span>
   <div class="weather-grid" id="weatherGrid"></div>
+  <div class="weather-note">Indice UV max du jour — utile pour doser le bronzage (prudence dès UV 6, éviter l'exposition prolongée entre 11h et 15h dès UV 8).</div>
 
   <h2 class="section">Infos pratiques</h2>
   <div class="details" style="grid-template-columns:repeat(4,1fr);">
@@ -659,6 +642,14 @@
     if([95,96,99].includes(code)) return 'Orage';
     return '—';
   }
+  function uvLabel(uv){
+    if(uv==null) return { text:'—', color:'#9aa8a4' };
+    if(uv<3) return { text:'faible', color:'#2f9e44' };
+    if(uv<6) return { text:'modéré', color:'#e8a72c' };
+    if(uv<8) return { text:'élevé', color:'#e8602c' };
+    if(uv<11) return { text:'très élevé', color:'#d3273e' };
+    return { text:'extrême', color:'#8a2be2' };
+  }
 
   function getCachedWeather(){ try{ return JSON.parse(localStorage.getItem('bali-weather')||'null'); }catch(e){ return null; } }
   function setCachedWeather(w){ try{ localStorage.setItem('bali-weather', JSON.stringify(w)); }catch(e){} }
@@ -671,7 +662,9 @@
       const card = document.createElement('div');
       card.className = 'weather-card';
       if(w){
-        card.innerHTML = `<div class="wname">${s.name}</div><div class="wicon">${weatherIcon(w.code)}</div><div class="wtemp">${Math.round(w.temp)}°C</div><div class="wdesc">${weatherDesc(w.code)}</div>`;
+        const uv = uvLabel(w.uv);
+        const uvBadge = w.uv!=null ? `<div class="wuv" style="background:${uv.color}22;color:${uv.color}">UV ${Math.round(w.uv)} · ${uv.text}</div>` : '';
+        card.innerHTML = `<div class="wname">${s.name}</div><div class="wicon">${weatherIcon(w.code)}</div><div class="wtemp">${Math.round(w.temp)}°C</div><div class="wdesc">${weatherDesc(w.code)}</div>${uvBadge}`;
       } else {
         card.innerHTML = `<div class="wname">${s.name}</div><div class="wicon">—</div><div class="wdesc">indisponible</div>`;
       }
@@ -685,9 +678,10 @@
     if(cached) renderWeather(cached.data, false);
     try{
       const results = await Promise.all(weatherStops.map(async s=>{
-        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${s.lat}&longitude=${s.lng}&current=temperature_2m,weather_code&timezone=auto`);
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${s.lat}&longitude=${s.lng}&current=temperature_2m,weather_code&daily=uv_index_max&timezone=auto`);
         const j = await res.json();
-        return [s.name, { temp:j.current.temperature_2m, code:j.current.weather_code }];
+        const uv = j.daily && j.daily.uv_index_max ? j.daily.uv_index_max[0] : null;
+        return [s.name, { temp:j.current.temperature_2m, code:j.current.weather_code, uv }];
       }));
       const data = Object.fromEntries(results);
       setCachedWeather({ data, ts: Date.now() });
