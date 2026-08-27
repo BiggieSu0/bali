@@ -667,7 +667,7 @@
     const thead = '<thead><tr><th>Étape</th>' + WEATHER_HOURS.map(h=>`<th>${String(h).padStart(2,'0')}h</th>`).join('') + '<th>UV max</th></tr></thead>';
     const rows = weatherStops.map(s=>{
       const w = data[s.name];
-      if(!w){
+      if(!w || !w.slots){
         return `<tr><td>${s.name}</td><td colspan="${WEATHER_HOURS.length+1}" style="color:#7a8a86;">indisponible</td></tr>`;
       }
       const cells = w.slots.map(slot=>{
