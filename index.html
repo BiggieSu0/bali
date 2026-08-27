@@ -176,14 +176,17 @@
   .contact-card b{ color:var(--coral); }
 
   /* --- Weather --- */
-  .weather-grid{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
-  .weather-card{ background:white; border:1px solid var(--line); border-radius:9px; padding:9px 8px; text-align:center; font-size:10.5px; }
-  .weather-card .wname{ font-family:'Fraunces', serif; font-weight:600; font-size:11.5px; margin-bottom:3px; }
-  .weather-card .wicon{ font-size:22px; margin:2px 0; }
-  .weather-card .wtemp{ font-weight:700; color:var(--coral); font-size:13px; }
-  .weather-card .wdesc{ color:#4d6864; font-size:9.5px; }
-  .weather-card .wuv{ font-size:9px; font-weight:700; margin-top:4px; padding:1px 6px; border-radius:8px; display:inline-block; }
   .weather-refresh{ font-size:10.5px; color:var(--sea); font-weight:700; text-decoration:underline; cursor:pointer; margin-bottom:8px; display:inline-block; }
+  .weather-scroll{ overflow-x:auto; }
+  table.weather-table{ width:100%; border-collapse:collapse; font-size:10.5px; }
+  table.weather-table th{ text-align:center; font-size:9px; text-transform:uppercase; letter-spacing:.03em; color:var(--sea); border-bottom:2px solid var(--ink); padding:5px 4px; white-space:nowrap; }
+  table.weather-table th:first-child{ text-align:left; }
+  table.weather-table td{ text-align:center; border-bottom:1px solid var(--line); padding:6px 4px; white-space:nowrap; }
+  table.weather-table td:first-child{ text-align:left; font-family:'Fraunces', serif; font-weight:600; font-size:11px; color:var(--ink); }
+  table.weather-table tr:nth-child(even) td{ background:#f5f0e2; }
+  .wt-icon{ font-size:12px; margin-right:2px; }
+  .wt-temp{ font-weight:700; color:var(--ink); }
+  .wt-uv{ font-size:9.5px; font-weight:700; padding:2px 7px; border-radius:9px; display:inline-block; }
   .weather-note{ font-size:9.5px; color:#7a8a86; margin-top:8px; }
 
   @media print{
@@ -507,8 +510,8 @@
 
   <h2 class="section">Météo en direct</h2>
   <span class="weather-refresh" id="weatherRefresh">↺ actualiser</span>
-  <div class="weather-grid" id="weatherGrid"></div>
-  <div class="weather-note">Indice UV max du jour — utile pour doser le bronzage (prudence dès UV 6, éviter l'exposition prolongée entre 11h et 15h dès UV 8).</div>
+  <div class="weather-scroll"><table class="weather-table" id="weatherGrid"></table></div>
+  <div class="weather-note">Prévisions toutes les 4h sur la journée + indice UV max — utile pour doser le bronzage (prudence dès UV 6, éviter l'exposition prolongée entre 11h et 15h dès UV 8).</div>
 
   <h2 class="section">Infos pratiques</h2>
   <div class="details" style="grid-template-columns:repeat(4,1fr);">
@@ -651,25 +654,31 @@
     return { text:'extrême', color:'#8a2be2' };
   }
 
+  const WEATHER_HOURS = [0,4,8,12,16,20];
+  function hourIndex(times, hour){
+    return times.findIndex(t => parseInt(t.slice(11,13),10) === hour);
+  }
+
   function getCachedWeather(){ try{ return JSON.parse(localStorage.getItem('bali-weather')||'null'); }catch(e){ return null; } }
   function setCachedWeather(w){ try{ localStorage.setItem('bali-weather', JSON.stringify(w)); }catch(e){} }
 
   function renderWeather(data, offline){
-    const grid = document.getElementById('weatherGrid');
-    grid.innerHTML = '';
-    weatherStops.forEach(s=>{
+    const table = document.getElementById('weatherGrid');
+    const thead = '<thead><tr><th>Étape</th>' + WEATHER_HOURS.map(h=>`<th>${String(h).padStart(2,'0')}h</th>`).join('') + '<th>UV max</th></tr></thead>';
+    const rows = weatherStops.map(s=>{
       const w = data[s.name];
-      const card = document.createElement('div');
-      card.className = 'weather-card';
-      if(w){
-        const uv = uvLabel(w.uv);
-        const uvBadge = w.uv!=null ? `<div class="wuv" style="background:${uv.color}22;color:${uv.color}">UV ${Math.round(w.uv)} · ${uv.text}</div>` : '';
-        card.innerHTML = `<div class="wname">${s.name}</div><div class="wicon">${weatherIcon(w.code)}</div><div class="wtemp">${Math.round(w.temp)}°C</div><div class="wdesc">${weatherDesc(w.code)}</div>${uvBadge}`;
-      } else {
-        card.innerHTML = `<div class="wname">${s.name}</div><div class="wicon">—</div><div class="wdesc">indisponible</div>`;
+      if(!w){
+        return `<tr><td>${s.name}</td><td colspan="${WEATHER_HOURS.length+1}" style="color:#7a8a86;">indisponible</td></tr>`;
       }
-      grid.appendChild(card);
-    });
+      const cells = w.slots.map(slot=>{
+        if(!slot) return '<td>—</td>';
+        return `<td title="${weatherDesc(slot.code)}"><span class="wt-icon">${weatherIcon(slot.code)}</span><span class="wt-temp">${Math.round(slot.temp)}°</span></td>`;
+      }).join('');
+      const uv = uvLabel(w.uv);
+      const uvCell = `<td><span class="wt-uv" style="background:${uv.color}22;color:${uv.color}">${w.uv!=null?Math.round(w.uv):'—'}</span></td>`;
+      return `<tr><td>${s.name}</td>${cells}${uvCell}</tr>`;
+    }).join('');
+    table.innerHTML = thead + '<tbody>' + rows + '</tbody>';
     document.getElementById('weatherRefresh').textContent = offline ? '↺ actualiser (hors-ligne — dernières données affichées)' : '↺ actualiser';
   }
 
@@ -678,17 +687,22 @@
     if(cached) renderWeather(cached.data, false);
     try{
       const results = await Promise.all(weatherStops.map(async s=>{
-        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${s.lat}&longitude=${s.lng}&current=temperature_2m,weather_code&daily=uv_index_max&timezone=auto`);
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${s.lat}&longitude=${s.lng}&hourly=temperature_2m,weather_code&daily=uv_index_max&timezone=auto&forecast_days=1`);
         const j = await res.json();
+        const times = j.hourly.time;
+        const slots = WEATHER_HOURS.map(h=>{
+          const idx = hourIndex(times, h);
+          return idx>=0 ? { temp:j.hourly.temperature_2m[idx], code:j.hourly.weather_code[idx] } : null;
+        });
         const uv = j.daily && j.daily.uv_index_max ? j.daily.uv_index_max[0] : null;
-        return [s.name, { temp:j.current.temperature_2m, code:j.current.weather_code, uv }];
+        return [s.name, { slots, uv }];
       }));
       const data = Object.fromEntries(results);
       setCachedWeather({ data, ts: Date.now() });
       renderWeather(data, false);
     }catch(e){
       if(cached) renderWeather(cached.data, true);
-      else document.getElementById('weatherGrid').innerHTML = '<div style="font-size:11px;color:#7a8a86;">Météo indisponible sans connexion pour le moment.</div>';
+      else document.getElementById('weatherGrid').innerHTML = '<tbody><tr><td style="font-size:11px;color:#7a8a86;padding:8px;">Météo indisponible sans connexion pour le moment.</td></tr></tbody>';
     }
   }
   document.getElementById('weatherRefresh').addEventListener('click', loadWeather);
