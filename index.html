@@ -163,37 +163,17 @@
   }
   .checklist-bar{ flex:1; height:8px; background:var(--sand); border-radius:6px; overflow:hidden; }
   .checklist-bar-fill{ height:100%; background:var(--coral); width:0%; transition:width .3s; }
-  .checklist-cols{ display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
+  .checklist-cols{ display:grid; grid-template-columns:1fr; gap:12px; max-width:320px; }
   .checklist-cat h4{ font-family:'Fraunces', serif; font-size:12.5px; color:var(--sea); margin-bottom:6px; }
   .checklist-item{ display:flex; align-items:flex-start; gap:6px; font-size:11px; margin-bottom:5px; cursor:pointer; line-height:1.35; }
   .checklist-item input{ margin-top:2px; accent-color:var(--coral); cursor:pointer; }
   .checklist-item.checked span{ text-decoration:line-through; color:#9aa8a4; }
 
-  /* --- Contacts / hébergements --- */
+  /* --- Contacts --- */
   .contacts-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:14px; }
   .contact-card{ background:white; border:1px solid var(--line); border-radius:9px; padding:11px 13px; font-size:11.5px; line-height:1.6; }
   .contact-card h4{ font-family:'Fraunces', serif; font-size:13px; color:var(--sea); margin-bottom:4px; }
   .contact-card b{ color:var(--coral); }
-  table.stay-table{ width:100%; border-collapse:collapse; font-size:11px; }
-  table.stay-table th{ text-align:left; font-size:9.5px; text-transform:uppercase; letter-spacing:.03em; color:var(--sea); border-bottom:2px solid var(--ink); padding:5px 6px; }
-  table.stay-table td{ border-bottom:1px solid var(--line); padding:5px 6px; }
-  table.stay-table input{
-    width:100%; border:1px solid var(--line); border-radius:5px; padding:3px 6px;
-    font-family:'DM Sans'; font-size:10.5px; background:var(--paper); color:var(--ink);
-  }
-  table.stay-table input:focus{ outline:1.5px solid var(--sea); background:white; }
-  .save-hint{ font-size:9.5px; color:#7a8a86; margin-top:5px; }
-
-  /* --- Converter --- */
-  .converter{ display:flex; align-items:flex-end; gap:10px; flex-wrap:wrap; background:white; border:1px solid var(--line); border-radius:10px; padding:14px; }
-  .converter .field{ display:flex; flex-direction:column; gap:3px; }
-  .converter label{ font-size:10px; color:var(--sea); font-weight:700; text-transform:uppercase; letter-spacing:.03em; }
-  .converter input, .converter select{
-    font-family:'DM Sans'; font-size:13px; padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink);
-  }
-  .converter .swap{ cursor:pointer; font-size:16px; padding-bottom:6px; color:var(--sea); user-select:none; }
-  .converter-result{ font-family:'Fraunces', serif; font-size:20px; font-weight:700; color:var(--coral); padding-bottom:4px; }
-  .converter-note{ font-size:9.5px; color:#7a8a86; margin-top:8px; }
 
   /* --- Weather --- */
   .weather-grid{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
@@ -229,7 +209,7 @@
     <div class="map-info" id="mapInfo">Clique sur une étape numérotée pour la mettre en évidence.</div>
     <div class="map-legend">
       <span><i class="leg-dot-sm"></i> étape</span>
-      <span><i class="leg-dot-lg"></i> temps fort (Ubud / Uluwatu / Canggu)</span>
+      <span><i class="leg-dot-lg"></i> temps fort (Canggu = base · Ubud / Uluwatu = excursions)</span>
       <span>✈ vol · 🚗 route · ⛴ bateau</span>
       <span class="map-reset" id="mapReset">↺ tout afficher</span>
     </div>
@@ -238,15 +218,15 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     const stops = [
-      { n:1, name:"Denpasar",     sub:"17h · 1 nuit",   lat:-8.6559, lng:115.2168, big:false },
-      { n:2, name:"Kuta Lombok",  sub:"2 nuits",         lat:-8.8879, lng:116.2838, big:false },
-      { n:3, name:"Senggigi",     sub:"2 nuits",         lat:-8.4886, lng:116.0414, big:false },
-      { n:4, name:"Gili Air",     sub:"2 nuits",         lat:-8.3590, lng:116.0813, big:false },
-      { n:5, name:"Nusa Penida",  sub:"1 nuit",          lat:-8.7514, lng:115.4732, big:false },
-      { n:6, name:"Sanur",        sub:"escale bateau",   lat:-8.7072, lng:115.2626, big:false },
-      { n:7, name:"Ubud",         sub:"2 nuits",         lat:-8.5069, lng:115.2625, big:true },
-      { n:8, name:"Uluwatu",      sub:"2 nuits",         lat:-8.8291, lng:115.0849, big:true },
-      { n:9, name:"Canggu",       sub:"1 nuit",          lat:-8.6490, lng:115.1379, big:true }
+      { n:1, name:"Denpasar",     sub:"17h · 1 nuit",       lat:-8.6559, lng:115.2168, big:false },
+      { n:2, name:"Kuta Lombok",  sub:"2 nuits",             lat:-8.8879, lng:116.2838, big:false },
+      { n:3, name:"Senggigi",     sub:"2 nuits",             lat:-8.4886, lng:116.0414, big:false },
+      { n:4, name:"Gili Air",     sub:"2 nuits",             lat:-8.3590, lng:116.0813, big:false },
+      { n:5, name:"Nusa Penida",  sub:"1 nuit",              lat:-8.7514, lng:115.4732, big:false },
+      { n:6, name:"Sanur",        sub:"escale bateau",       lat:-8.7072, lng:115.2626, big:false },
+      { n:7, name:"Canggu",       sub:"5 nuits · base",      lat:-8.6490, lng:115.1379, big:true },
+      { n:8, name:"Ubud",         sub:"excursion journée",   lat:-8.5069, lng:115.2625, big:true, excursion:true },
+      { n:9, name:"Uluwatu",      sub:"excursion journée",   lat:-8.8291, lng:115.0849, big:true, excursion:true }
     ];
 
     // [from, to, mode]
@@ -258,7 +238,7 @@
       [4,5,"bateau"],
       [5,6,"route"],
       [6,7,"route"],
-      [7,8,"route"]
+      [6,8,"route"]
     ];
 
     const map = L.map('map', { scrollWheelZoom:false }).setView([-8.62,115.7], 9);
@@ -311,14 +291,16 @@
       iconMarkers.forEach((im,i)=> im.setOpacity(connectedLegs.includes(i) ? 1 : 0.15));
       pinMarkers.forEach((p,i)=> p.setOpacity(neighborSet.has(i) ? 1 : 0.25));
 
-      const prevLeg = legs.find(l=>l[1]===idx);
-      const nextLeg = legs.find(l=>l[0]===idx);
-      const from = prevLeg ? stops[prevLeg[0]].name : null;
-      const to = nextLeg ? stops[nextLeg[1]].name : null;
+      const prevNames = legs.filter(l=>l[1]===idx).map(l=>stops[l[0]].name);
+      const nextNames = legs.filter(l=>l[0]===idx).map(l=>stops[l[1]].name);
       let html = `<b>${stops[idx].n}. ${stops[idx].name}</b> — ${stops[idx].sub}<br>`;
-      html += from ? `depuis <b>${from}</b>` : "départ du séjour";
-      html += " → ";
-      html += to ? `vers <b>${to}</b>` : "fin de cette portion";
+      if(stops[idx].excursion){
+        html += `aller-retour depuis <b>${prevNames.join(', ') || 'Canggu'}</b> — retour le soir même`;
+      } else {
+        html += prevNames.length ? `depuis <b>${prevNames.join(', ')}</b>` : "départ du séjour";
+        html += " → ";
+        html += nextNames.length ? `vers <b>${nextNames.join(', ')}</b>` : "fin de cette portion";
+      }
       document.getElementById('mapInfo').innerHTML = html;
     }
 
@@ -390,21 +372,21 @@
       <div class="track"></div>
       <div class="transport-label">taxi</div><div class="transport">🚗</div>
       <div class="node"></div>
-      <div class="place">Ubud</div><div class="sub">2 nuits</div>
-      <div class="date-badge">Lun 28 → Mer 30/09</div>
+      <div class="place">Canggu</div><div class="sub">5 nuits · base</div>
+      <div class="date-badge">Lun 28/09 → Sam 03/10</div>
     </div>
     <div class="stop big">
       <div class="track"></div>
-      <div class="transport-label">taxi</div><div class="transport">🚗</div>
+      <div class="transport-label">aller-retour</div><div class="transport">🚗</div>
       <div class="node"></div>
-      <div class="place">Uluwatu</div><div class="sub">2 nuits</div>
-      <div class="date-badge">Mer 30/09 → Ven 02/10</div>
+      <div class="place">Ubud</div><div class="sub">excursion journée</div>
+      <div class="date-badge">Mar 29/09</div>
     </div>
     <div class="stop big">
-      <div class="transport-label">taxi</div><div class="transport">🚗</div>
+      <div class="transport-label">aller-retour</div><div class="transport">🚗</div>
       <div class="node"></div>
-      <div class="place">Canggu</div><div class="sub">1 nuit</div>
-      <div class="date-badge">Ven 02 → Sam 03/10</div>
+      <div class="place">Uluwatu</div><div class="sub">excursion journée · Kecak sunset</div>
+      <div class="date-badge">Mer 30/09</div>
     </div>
   </div>
 
@@ -453,25 +435,25 @@
       <td>Nombreux départs/jour (Banjar Nyuh/Toyapakeh). Réserver la veille suffit hors haute saison ou cérémonies (Nyepi, Galungan).</td>
     </tr>
     <tr>
-      <td><b>Sanur → Ubud</b><br>lun 28/09</td>
+      <td><b>Sanur → Canggu</b><br>lun 28/09</td>
       <td><span class="mode-badge">🚗 Taxi</span></td>
-      <td>45 min - 1h30</td>
-      <td class="price">≈ 10-15 €</td>
-      <td>Bluebird (compteur) ou Grab/Gojek (prix fixe à l'avance, souvent moins cher). Trafic variable selon l'heure.</td>
+      <td>40 min - 1h</td>
+      <td class="price">≈ 8-14 €</td>
+      <td>Bluebird (compteur) ou Grab/Gojek (prix fixe à l'avance, souvent moins cher). Trajet direct le long de la côte.</td>
     </tr>
     <tr>
-      <td><b>Ubud → Uluwatu</b><br>mer 30/09</td>
+      <td><b>Canggu → Ubud</b><br>mar 29/09, aller-retour</td>
       <td><span class="mode-badge">🚗 Taxi/privé</span></td>
-      <td>~1h30-2h</td>
-      <td class="price">≈ 18-22 €</td>
-      <td>Grab/Gojek restreints au centre d'Ubud (pickup hors centre conseillé) ; sinon voiture privée à réserver via l'hôtel.</td>
+      <td>~1h-1h30 (aller)</td>
+      <td class="price">≈ 18-25 € (A/R)</td>
+      <td>Grab/Gojek restreints au centre d'Ubud (pickup hors centre conseillé) ; mieux vaut réserver un chauffeur à la journée pour rizières + temples sans contrainte horaire.</td>
     </tr>
     <tr>
-      <td><b>Uluwatu → Canggu</b><br>ven 02/10</td>
-      <td><span class="mode-badge">🚗 Taxi</span> <span class="mode-badge" style="background:var(--coral)">⛴ Alt. bateau</span></td>
-      <td>40 min - 2h (route)<br>40 min (bateau)</td>
-      <td class="price">≈ 12-23 € (route)<br>≈ 15 € (bateau)</td>
-      <td>Route très embouteillée en fin de journée (Kuta, Seminyak, Kerobokan). Alternative : navette bateau "GoBoat" Uluwatu↔Canggu en ~40 min, évite le trafic.</td>
+      <td><b>Canggu → Uluwatu</b><br>mer 30/09, aller-retour</td>
+      <td><span class="mode-badge">🚗 Taxi/privé</span></td>
+      <td>~45 min-1h15 (aller)</td>
+      <td class="price">≈ 20-28 € (A/R)</td>
+      <td>Prévoir le retour après la danse Kecak au coucher du soleil (~19h) — trafic possible sur la route du retour, chauffeur/driver à la journée conseillé.</td>
     </tr>
   </table>
 
@@ -505,24 +487,24 @@
     <div class="card big">
       <h3>Ubud</h3>
       <ul><li>Rizières, temples</li><li>Grab restreint en centre-ville</li></ul>
-      <div class="nuits">2 nuits</div>
+      <div class="nuits">excursion journée</div>
     </div>
     <div class="card big">
       <h3>Uluwatu</h3>
-      <ul><li>Falaises, temple, surf</li><li>Sunset au temple d'Uluwatu</li></ul>
-      <div class="nuits">2 nuits</div>
+      <ul><li>Falaises, temple, surf</li><li>Danse Kecak au coucher du soleil</li></ul>
+      <div class="nuits">excursion journée</div>
     </div>
     <div class="card big">
       <h3>Canggu</h3>
       <ul><li>Ambiance beach club</li><li>Proche aéroport pour le retour</li></ul>
-      <div class="nuits">1 nuit</div>
+      <div class="nuits">5 nuits</div>
     </div>
   </div>
 
   <div class="after">
     <div class="block">
-      <h3>Répartition Ubud/Uluwatu/Canggu</h3>
-      <p>Suggestion sur les 5 nuits restantes (2 / 2 / 1) — facile à ajuster selon vos envies une fois sur place.</p>
+      <h3>Canggu, base de fin de séjour</h3>
+      <p>5 nuits à Canggu (28/09 → 03/10), avec deux excursions à la journée : Ubud le 29/09 et Uluwatu (temple + danse Kecak) le 30/09, retour à Canggu le soir même.</p>
     </div>
     <div class="block">
       <h3>Retour de ta copine</h3>
@@ -540,59 +522,6 @@
     <div class="checklist-bar"><div class="checklist-bar-fill" id="checklistBar"></div></div>
   </div>
   <div class="checklist-cols" id="checklistGrid"></div>
-
-  <h2 class="section">Contacts d'urgence & infos par étape</h2>
-  <div class="contacts-grid">
-    <div class="contact-card">
-      <h4>Urgences générales (Indonésie)</h4>
-      Police : <b>110</b> &nbsp;·&nbsp; Ambulance : <b>118</b> / <b>119</b> &nbsp;·&nbsp; Pompiers : <b>113</b>
-    </div>
-    <div class="contact-card">
-      <h4>Agence consulaire de France — Bali</h4>
-      <b>+62 811 3960 1401</b><br>Griya Abasan No.18, Padangsambian Klod, Denpasar Barat<br>Lun-Ven 13h-17h
-    </div>
-    <div class="contact-card">
-      <h4>Ambassade de France — Jakarta (urgences)</h4>
-      <b>+62 811 1954 3123</b> (urgences consulaires)<br>+62 21 2355 8000 (standard)
-    </div>
-    <div class="contact-card">
-      <h4>Hôpitaux utiles</h4>
-      Bali : BIMC Kuta/Nusa Dua (clinique internationale), Sanglah (public, Denpasar)<br>Lombok : RSUD Provinsi NTB (Mataram)
-    </div>
-  </div>
-
-  <table class="stay-table">
-    <tr><th style="width:16%">Étape</th><th style="width:28%">Hébergement</th><th style="width:36%">Adresse</th><th style="width:20%">Téléphone</th></tr>
-    <tbody id="stayTableBody"></tbody>
-  </table>
-  <div class="save-hint">Rempli directement depuis ton téléphone une fois les réservations confirmées — sauvegardé automatiquement sur cet appareil, même hors-ligne.</div>
-
-  <h2 class="section">Convertisseur IDR ⇄ CHF / EUR</h2>
-  <div class="converter">
-    <div class="field">
-      <label>Montant</label>
-      <input type="number" id="convAmount" value="100000" min="0">
-    </div>
-    <div class="field">
-      <label>De</label>
-      <select id="convFrom">
-        <option value="IDR" selected>IDR (Rp)</option>
-        <option value="CHF">CHF</option>
-        <option value="EUR">EUR</option>
-      </select>
-    </div>
-    <div class="swap" id="convSwap">⇄</div>
-    <div class="field">
-      <label>Vers</label>
-      <select id="convTo">
-        <option value="CHF" selected>CHF</option>
-        <option value="EUR">EUR</option>
-        <option value="IDR">IDR (Rp)</option>
-      </select>
-    </div>
-    <div class="converter-result" id="convResult">—</div>
-  </div>
-  <div class="converter-note" id="convNote">Chargement du taux…</div>
 
   <h2 class="section">Météo en direct</h2>
   <span class="weather-refresh" id="weatherRefresh">↺ actualiser</span>
@@ -618,6 +547,26 @@
     </div>
   </div>
 
+  <h2 class="section">Contacts d'urgence & infos par étape</h2>
+  <div class="contacts-grid">
+    <div class="contact-card">
+      <h4>Urgences générales (Indonésie)</h4>
+      Police : <b>110</b> &nbsp;·&nbsp; Ambulance : <b>118</b> / <b>119</b> &nbsp;·&nbsp; Pompiers : <b>113</b>
+    </div>
+    <div class="contact-card">
+      <h4>Agence consulaire de France — Bali</h4>
+      <b>+62 811 3960 1401</b><br>Griya Abasan No.18, Padangsambian Klod, Denpasar Barat<br>Lun-Ven 13h-17h
+    </div>
+    <div class="contact-card">
+      <h4>Ambassade de France — Jakarta (urgences)</h4>
+      <b>+62 811 1954 3123</b> (urgences consulaires)<br>+62 21 2355 8000 (standard)
+    </div>
+    <div class="contact-card">
+      <h4>Hôpitaux utiles</h4>
+      Bali : BIMC Kuta/Nusa Dua (clinique internationale), Sanglah (public, Denpasar)<br>Lombok : RSUD Provinsi NTB (Mataram)
+    </div>
+  </div>
+
   <div class="sources">
     Estimations de prix et durées à titre indicatif (tarifs 2026, sujets à variation selon saison/opérateur) — sources : Ferryhopper, DirectFerries, Skyscanner/Airpaz, 12Go, GeckoRoutes, WeWillNomad, BaliHolidaySecrets, Kiwitaxi, UbudCenter.
   </div>
@@ -637,11 +586,7 @@
 
   /* ---------- Checklist ---------- */
   const checklistData = {
-    "Documents": ["Passeport valide 6 mois après retour","Visa e-VOA / e-Visa fait","Assurance voyage souscrite","Permis de conduire international"],
-    "Santé": ["Vaccins à jour","Pharmacie de voyage","Anti-moustique / répulsif","Crème solaire indice élevé"],
-    "Argent": ["Banque prévenue du voyage","Un peu de cash IDR retiré à l'arrivée","Carte de secours séparée"],
-    "Techno": ["eSIM activée","Adaptateur prise + chargeurs","Powerbank chargée","Photos des documents sauvegardées"],
-    "Réservations": ["Vols internationaux","Vol Denpasar → Lombok","Bateau Gili Air → Nusa Penida","Hébergements confirmés"]
+    "Documents": ["Passeport valide 6 mois après retour","Visa e-VOA / e-Visa fait","Assurance voyage souscrite","Permis de conduire international"]
   };
 
   function loadChecklist(){ try{ return JSON.parse(localStorage.getItem('bali-checklist')||'{}'); }catch(e){ return {}; } }
@@ -681,92 +626,6 @@
     });
   }
   renderChecklist();
-
-  /* ---------- Hébergements par étape (édition libre, sauvegarde locale) ---------- */
-  const stayStops = ["Denpasar","Kuta Lombok","Senggigi","Gili Air","Nusa Penida","Ubud","Uluwatu","Canggu"];
-  function loadStays(){ try{ return JSON.parse(localStorage.getItem('bali-stays')||'{}'); }catch(e){ return {}; } }
-  function saveStays(state){ try{ localStorage.setItem('bali-stays', JSON.stringify(state)); }catch(e){} }
-
-  function renderStayTable(){
-    const state = loadStays();
-    const tbody = document.getElementById('stayTableBody');
-    tbody.innerHTML = '';
-    stayStops.forEach(name=>{
-      const s = state[name] || {};
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><b>${name}</b></td>
-        <td><input type="text" placeholder="nom" data-stop="${name}" data-field="hotel" value="${s.hotel||''}"></td>
-        <td><input type="text" placeholder="adresse" data-stop="${name}" data-field="address" value="${s.address||''}"></td>
-        <td><input type="text" placeholder="téléphone" data-stop="${name}" data-field="phone" value="${s.phone||''}"></td>
-      `;
-      tbody.appendChild(tr);
-    });
-    tbody.querySelectorAll('input').forEach(inp=>{
-      inp.addEventListener('input', ()=>{
-        const st = loadStays();
-        st[inp.dataset.stop] = st[inp.dataset.stop] || {};
-        st[inp.dataset.stop][inp.dataset.field] = inp.value;
-        saveStays(st);
-      });
-    });
-  }
-  renderStayTable();
-
-  /* ---------- Convertisseur IDR / CHF / EUR ---------- */
-  const FALLBACK_RATES_PER_IDR = { IDR:1, CHF:1/22050, EUR:1/20650 }; // secours si hors-ligne (référence août 2026)
-  let currentRates = null;
-
-  function getCachedRates(){ try{ return JSON.parse(localStorage.getItem('bali-rates')||'null'); }catch(e){ return null; } }
-  function setCachedRates(r){ try{ localStorage.setItem('bali-rates', JSON.stringify(r)); }catch(e){} }
-
-  function runConversion(){
-    const amount = parseFloat(document.getElementById('convAmount').value) || 0;
-    const from = document.getElementById('convFrom').value;
-    const to = document.getElementById('convTo').value;
-    const rates = currentRates || FALLBACK_RATES_PER_IDR;
-    const amountInIdr = amount / rates[from];
-    const result = amountInIdr * rates[to];
-    document.getElementById('convResult').textContent =
-      result.toLocaleString('fr-FR', {maximumFractionDigits: to==='IDR'?0:2}) + ' ' + to;
-  }
-
-  async function loadRates(){
-    const note = document.getElementById('convNote');
-    const cached = getCachedRates();
-    if(cached){ currentRates = cached.rates; runConversion(); }
-    try{
-      const res = await fetch('https://open.er-api.com/v6/latest/IDR');
-      const data = await res.json();
-      if(data && data.rates && data.rates.CHF && data.rates.EUR){
-        currentRates = { IDR:1, CHF:data.rates.CHF, EUR:data.rates.EUR };
-        setCachedRates({ rates: currentRates, ts: Date.now() });
-        note.textContent = 'Taux en direct — mis à jour à l\'instant.';
-        runConversion();
-        return;
-      }
-      throw new Error('format inattendu');
-    }catch(e){
-      if(cached){
-        const d = new Date(cached.ts);
-        note.textContent = 'Hors-ligne : dernier taux connu du ' + d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}) + '.';
-      } else {
-        currentRates = FALLBACK_RATES_PER_IDR;
-        note.textContent = 'Taux approximatif (référence août 2026) — connexion indisponible.';
-      }
-      runConversion();
-    }
-  }
-
-  document.getElementById('convAmount').addEventListener('input', runConversion);
-  document.getElementById('convFrom').addEventListener('change', runConversion);
-  document.getElementById('convTo').addEventListener('change', runConversion);
-  document.getElementById('convSwap').addEventListener('click', ()=>{
-    const f = document.getElementById('convFrom'), t = document.getElementById('convTo');
-    const tmp = f.value; f.value = t.value; t.value = tmp;
-    runConversion();
-  });
-  loadRates();
 
   /* ---------- Météo en direct (Open-Meteo, sans clé) ---------- */
   const weatherStops = [
