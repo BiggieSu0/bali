@@ -119,6 +119,14 @@
   .stop.big .transport{ top:-24px; }
   .stop.big .transport-label{ top:-38px; }
 
+  .excursions-note{
+    margin-top:18px; padding:10px 14px;
+    background:var(--sand); border:1px solid var(--line); border-radius:10px;
+    font-size:11px; color:var(--ink);
+    display:flex; gap:16px; flex-wrap:wrap; align-items:baseline;
+  }
+  .excursions-note b{ color:var(--sea); }
+
   /* --- Legs table --- */
   table.legs{ width:100%; border-collapse:collapse; margin-top:4px; }
   table.legs th{ text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:var(--sea); border-bottom:2px solid var(--ink); padding:5px 7px; }
@@ -211,10 +219,11 @@
   <h2 class="section">Carte du parcours <small>— clique sur une étape pour voir d'où tu viens et où tu vas</small></h2>
   <div class="map-wrap">
     <div id="map"></div>
-    <div class="map-info" id="mapInfo">Clique sur une étape numérotée pour la mettre en évidence.</div>
+    <div class="map-info" id="mapInfo">Clique sur une étape ou une excursion pour la mettre en évidence.</div>
     <div class="map-legend">
       <span><i class="leg-dot-sm"></i> étape</span>
-      <span><i class="leg-dot-lg"></i> temps fort (Canggu, base de fin de séjour)</span>
+      <span><i class="leg-dot-lg"></i> Canggu (base fixe, 6 nuits)</span>
+      <span>📍 excursion journée (aller-retour depuis Canggu)</span>
       <span>✈ vol · 🚗 route · ⛴ bateau</span>
       <span class="map-reset" id="mapReset">↺ tout afficher</span>
     </div>
@@ -227,19 +236,23 @@
       { n:2, name:"Kuta Lombok",  sub:"2 nuits",             lat:-8.8879, lng:116.2838, big:false },
       { n:3, name:"Senggigi",     sub:"2 nuits",             lat:-8.4886, lng:116.0414, big:false },
       { n:4, name:"Gili Air",     sub:"2 nuits",             lat:-8.3590, lng:116.0813, big:false },
-      { n:5, name:"Nusa Penida",  sub:"1 nuit",              lat:-8.7514, lng:115.4732, big:false },
-      { n:6, name:"Sanur",        sub:"escale bateau",       lat:-8.7072, lng:115.2626, big:false },
-      { n:7, name:"Canggu",       sub:"5 nuits · base",      lat:-8.6490, lng:115.1379, big:true }
+      { n:5, name:"Canggu",       sub:"6 nuits · base",      lat:-8.6490, lng:115.1379, big:true }
     ];
 
-    // [from, to, mode]
+    // [from, to, mode] — indices into stops[]
     const legs = [
       [0,1,"avion"],
       [1,2,"route"],
       [2,3,"bateau"],
-      [3,4,"bateau"],
-      [4,5,"bateau"],
-      [5,6,"route"]
+      [3,4,"bateau"]
+    ];
+
+    // Excursions à la journée depuis Canggu (aller-retour, pas de nuitée)
+    const CANGGU_IDX = 4;
+    const excursions = [
+      { name:"Ubud",         sub:"Excursion journée · 28/09",                    lat:-8.5069, lng:115.2625 },
+      { name:"Uluwatu",      sub:"Excursion journée · 29/09 (+ danse Kecak)",    lat:-8.8291, lng:115.0849 },
+      { name:"Nusa Penida",  sub:"Excursion journée · 30/09",                    lat:-8.7514, lng:115.4732 }
     ];
 
     const map = L.map('map', { scrollWheelZoom:false }).setView([-8.62,115.7], 9);
@@ -255,6 +268,8 @@
     const lines = [];
     const iconMarkers = [];
     const pinMarkers = [];
+    const excLines = [];
+    const excMarkers = [];
 
     legs.forEach(([a,b,mode], i)=>{
       const from = stops[a], to = stops[b];
@@ -275,11 +290,22 @@
       iconMarkers.push(im);
     });
 
+    // Lignes en pointillés vers les excursions à la journée depuis Canggu
+    const cangguPt = stops[CANGGU_IDX];
+    excursions.forEach((e)=>{
+      const line = L.polyline([[cangguPt.lat,cangguPt.lng],[e.lat,e.lng]], {
+        color:"#0f6b64", weight:2, dashArray:"3,7", opacity:0.55
+      }).addTo(map);
+      excLines.push(line);
+    });
+
     function resetView(){
       lines.forEach(l=>l.setStyle({opacity:0.85}));
       iconMarkers.forEach(im=>im.setOpacity(1));
       pinMarkers.forEach(p=>p.setOpacity(1));
-      document.getElementById('mapInfo').innerHTML = "Clique sur une étape numérotée pour la mettre en évidence.";
+      excLines.forEach(l=>l.setStyle({opacity:0.55}));
+      excMarkers.forEach(m=>m.setOpacity(1));
+      document.getElementById('mapInfo').innerHTML = "Clique sur une étape ou une excursion pour la mettre en évidence.";
     }
 
     function selectStop(idx){
@@ -291,6 +317,9 @@
       lines.forEach((l,i)=> l.setStyle({ opacity: connectedLegs.includes(i) ? 1 : 0.12 }));
       iconMarkers.forEach((im,i)=> im.setOpacity(connectedLegs.includes(i) ? 1 : 0.15));
       pinMarkers.forEach((p,i)=> p.setOpacity(neighborSet.has(i) ? 1 : 0.25));
+      const isCanggu = idx===CANGGU_IDX;
+      excLines.forEach(l=> l.setStyle({ opacity: isCanggu ? 0.55 : 0.08 }));
+      excMarkers.forEach(m=> m.setOpacity(isCanggu ? 1 : 0.2));
 
       const prevLeg = legs.find(l=>l[1]===idx);
       const nextLeg = legs.find(l=>l[0]===idx);
@@ -299,8 +328,19 @@
       let html = `<b>${stops[idx].n}. ${stops[idx].name}</b> — ${stops[idx].sub}<br>`;
       html += from ? `depuis <b>${from}</b>` : "départ du séjour";
       html += " → ";
-      html += to ? `vers <b>${to}</b>` : "fin de cette portion";
+      html += to ? `vers <b>${to}</b>` : (isCanggu ? "base de fin de séjour" : "fin de cette portion");
+      if(isCanggu) html += `<br>Excursions à la journée : ${excursions.map(e=>e.name).join(", ")}`;
       document.getElementById('mapInfo').innerHTML = html;
+    }
+
+    function selectExcursion(e, idx){
+      lines.forEach(l=> l.setStyle({opacity:0.12}));
+      iconMarkers.forEach(im=> im.setOpacity(0.15));
+      pinMarkers.forEach((p,i)=> p.setOpacity(i===CANGGU_IDX ? 1 : 0.25));
+      excLines.forEach((l,i)=> l.setStyle({ opacity: i===idx ? 1 : 0.1 }));
+      excMarkers.forEach((m,i)=> m.setOpacity(i===idx ? 1 : 0.25));
+      document.getElementById('mapInfo').innerHTML =
+        `<b>${e.name}</b> — ${e.sub}<br>aller-retour depuis <b>Canggu</b> dans la journée`;
     }
 
     stops.forEach((s,idx)=>{
@@ -317,9 +357,22 @@
       pinMarkers.push(marker);
     });
 
+    excursions.forEach((e,idx)=>{
+      const marker = L.marker([e.lat,e.lng], {
+        icon: L.divIcon({
+          className:"",
+          html:`<div class="leg-icon" style="width:20px;height:20px;border-style:dashed;">📍</div>`,
+          iconSize:[20,20], iconAnchor:[10,10]
+        })
+      }).addTo(map);
+      marker.bindTooltip(`${e.name} · ${e.sub}`, { direction:"top", offset:[0,-10] });
+      marker.on('click', ()=> selectExcursion(e, idx));
+      excMarkers.push(marker);
+    });
+
     document.getElementById('mapReset').addEventListener('click', resetView);
 
-    const bounds = L.latLngBounds(stops.map(s=>[s.lat,s.lng]));
+    const bounds = L.latLngBounds(stops.concat(excursions).map(s=>[s.lat,s.lng]));
     map.fitBounds(bounds, { padding:[36,36] });
   </script>
 
@@ -351,28 +404,20 @@
       <div class="place">Gili Air</div><div class="sub">2 nuits</div>
       <div class="date-badge">Ven 25 → Dim 27/09</div>
     </div>
-    <div class="stop">
-      <div class="transport-label">bateau direct</div><div class="transport">⛴</div>
+    <div class="stop big">
+      <div class="transport-label">bateau + taxi</div><div class="transport">⛴🚗</div>
       <div class="node"></div>
-      <div class="place">Nusa Penida</div><div class="sub">1 nuit</div>
-      <div class="date-badge">Dim 27 → Lun 28/09</div>
+      <div class="place">Canggu</div><div class="sub">6 nuits · base</div>
+      <div class="date-badge">Dim 27/09 → Sam 03/10</div>
     </div>
   </div>
 
-  <div class="route" style="margin-top:10px;">
-    <div class="stop">
-      <div class="track"></div>
-      <div class="transport-label">bateau</div><div class="transport">⛴</div>
-      <div class="node"></div>
-      <div class="place">Sanur</div><div class="sub">arrivée bateau</div>
-      <div class="date-badge">Lun 28/09</div>
-    </div>
-    <div class="stop big">
-      <div class="transport-label">taxi</div><div class="transport">🚗</div>
-      <div class="node"></div>
-      <div class="place">Canggu</div><div class="sub">5 nuits · base</div>
-      <div class="date-badge">Lun 28/09 → Sam 03/10</div>
-    </div>
+  <div class="excursions-note">
+    <b>Excursions à la journée depuis Canggu :</b>
+    <span>28/09 → Ubud</span>
+    <span>29/09 → Uluwatu (temple + danse Kecak au coucher du soleil)</span>
+    <span>30/09 → Nusa Penida</span>
+    <span>01/10 & 02/10 → libres à Canggu</span>
   </div>
 
   <h2 class="section">Détail des trajets</h2>
@@ -406,39 +451,32 @@
       <td>Taxi Senggigi→Bangsal (~15-20 min, ≈9 €) puis bateau public (bon marché) ou speedboat privé (direct, plus cher).</td>
     </tr>
     <tr>
-      <td><b>Gili Air → Nusa Penida</b><br>dim 27/09, matin</td>
-      <td><span class="mode-badge">⛴ Bateau direct</span></td>
-      <td>1h45-2h</td>
-      <td class="price">≈ 13-47 €</td>
-      <td>Semaya One (moins cher), BlueWater Express (plus rapide). Peu de rotations/jour — <b>réserver dès que la date est fixée</b>.</td>
+      <td><b>Gili Air → Canggu</b><br>dim 27/09, matin</td>
+      <td><span class="mode-badge">⛴ Bateau</span> <span class="mode-badge">🚗 Taxi</span></td>
+      <td>1h45-3h30 (bateau)<br>+ 25-35 min (taxi)</td>
+      <td class="price">≈ 25-45 € + 5-8 €</td>
+      <td>Choisir une liaison <b>directe</b> Gili Air → Serangan Harbour (sans escale Nusa Lembongan/Penida) — Marina Fast Ferry, Gili Getaway ou BlueWater Express, à réserver dès que possible (peu de rotations). Puis taxi Serangan → Canggu (~25-35 min). Alternative si complet : port de Sanur Harbour (plus de départs/jour) puis taxi Sanur → Canggu (~30-45 min).</td>
     </tr>
     <tr>
-      <td><b>Nusa Penida → Sanur</b><br>lun 28/09, matin</td>
-      <td><span class="mode-badge">⛴ Bateau</span></td>
-      <td>30-45 min</td>
-      <td class="price">≈ 9-16 €</td>
-      <td>Nombreux départs/jour (Banjar Nyuh/Toyapakeh). Réserver la veille suffit hors haute saison ou cérémonies (Nyepi, Galungan).</td>
-    </tr>
-    <tr>
-      <td><b>Sanur → Canggu</b><br>lun 28/09</td>
-      <td><span class="mode-badge">🚗 Taxi</span></td>
-      <td>40 min - 1h</td>
-      <td class="price">≈ 8-14 €</td>
-      <td>Bluebird (compteur) ou Grab/Gojek (prix fixe à l'avance, souvent moins cher). Trajet direct le long de la côte.</td>
-    </tr>
-    <tr>
-      <td><b>Canggu → Ubud</b><br>aller-retour</td>
-      <td><span class="mode-badge">🚗 Taxi/privé</span></td>
+      <td><b>Canggu ⇄ Ubud</b><br>excursion journée · 28/09</td>
+      <td><span class="mode-badge">🚗 Taxi/Grab</span></td>
       <td>~1h-1h30 (aller)</td>
       <td class="price">≈ 18-25 € (A/R)</td>
-      <td>Grab/Gojek restreints au centre d'Ubud (pickup hors centre conseillé) ; mieux vaut réserver un chauffeur à la journée pour rizières + temples sans contrainte horaire.</td>
+      <td>28-30 km. Départ tôt le matin conseillé pour éviter le trafic, dans les deux sens.</td>
     </tr>
     <tr>
-      <td><b>Canggu → Uluwatu</b><br>aller-retour</td>
-      <td><span class="mode-badge">🚗 Taxi/privé</span></td>
-      <td>~45 min-1h15 (aller)</td>
-      <td class="price">≈ 20-28 € (A/R)</td>
-      <td>Prévoir le retour après la danse Kecak au coucher du soleil (~19h) — trafic possible sur la route du retour, chauffeur/driver à la journée conseillé.</td>
+      <td><b>Canggu ⇄ Uluwatu</b><br>excursion journée · 29/09</td>
+      <td><span class="mode-badge">🚗 Taxi/privé</span> ou <span class="mode-badge">⛴ GoBoat</span></td>
+      <td>1h-2h30+ (route)<br>35-40 min (GoBoat)</td>
+      <td class="price">≈ 20-28 € (A/R route)</td>
+      <td><b>Route</b> (30-40 km) : trafic variable, Grab/Gojek font souvent seulement la dépose côté Uluwatu (zones "taxi mafia") — prévoir de marcher un peu si pas de taxi direct au retour. <b>Bateau</b> : GoBoat (goboat.id) entre Nelayan Beach (Canggu) et Padang Padang Beach (Uluwatu) — départs Canggu 7h30/9h30/11h30/13h30/15h30, départs Uluwatu 8h30/10h30/12h30/14h30/16h30. Recommandé pour le retour après la danse Kecak au coucher du soleil (évite le trafic de nuit).</td>
+    </tr>
+    <tr>
+      <td><b>Canggu ⇄ Nusa Penida</b><br>excursion journée · 30/09</td>
+      <td><span class="mode-badge">🚗 Taxi</span> <span class="mode-badge">⛴ Bateau</span></td>
+      <td>45 min-1h30 (taxi)<br>+ 30-50 min (bateau, aller)</td>
+      <td class="price">≈ 10-15 € (taxi A/R)<br>+ 18-35 € (bateau A/R)</td>
+      <td>Taxi Canggu → Sanur Harbour, puis bateau vers Banjar Nyuh ou Toya Pakeh. Départ conseillé ~7h-7h30 de l'hôtel (arriver au port 30-45 min avant). Retour : privilégier le bateau de 16h-16h30 pour garder une marge de sécurité. Sur place : location de scooter directement au port d'arrivée (Banjar Nyuh/Sampalan/Buyuk) — pas besoin de driver/guide, exploration en autonomie.</td>
     </tr>
   </table>
 
@@ -464,32 +502,32 @@
       <ul><li>Sans scooter/voiture</li><li>Tortues en snorkeling</li></ul>
       <div class="nuits">2 nuits</div>
     </div>
-    <div class="card">
-      <h3>Nusa Penida</h3>
-      <ul><li>Kelingking, Angel's Billabong</li><li>Routes difficiles</li></ul>
-      <div class="nuits">1 nuit</div>
-    </div>
     <div class="card big">
       <h3>Ubud</h3>
       <ul><li>Rizières, temples</li><li>Grab restreint en centre-ville</li></ul>
-      <div class="nuits">excursion journée</div>
+      <div class="nuits">excursion journée depuis Canggu</div>
     </div>
     <div class="card big">
       <h3>Uluwatu</h3>
       <ul><li>Falaises, temple, surf</li><li>Danse Kecak au coucher du soleil</li></ul>
-      <div class="nuits">excursion journée</div>
+      <div class="nuits">excursion journée depuis Canggu</div>
+    </div>
+    <div class="card big">
+      <h3>Nusa Penida</h3>
+      <ul><li>Kelingking, Angel's Billabong</li><li>Scooter en location au port d'arrivée</li></ul>
+      <div class="nuits">excursion journée depuis Canggu</div>
     </div>
     <div class="card big">
       <h3>Canggu</h3>
       <ul><li>Ambiance beach club</li><li>Proche aéroport pour le retour</li></ul>
-      <div class="nuits">5 nuits</div>
+      <div class="nuits">6 nuits</div>
     </div>
   </div>
 
   <div class="after">
     <div class="block">
-      <h3>Canggu, base de fin de séjour</h3>
-      <p>5 nuits à Canggu (28/09 → 03/10), avec deux excursions à la journée : Ubud le 29/09 et Uluwatu (temple + danse Kecak) le 30/09, retour à Canggu le soir même.</p>
+      <h3>Canggu, base fixe de fin de séjour</h3>
+      <p>6 nuits à Canggu (27/09 → 03/10), avec trois excursions à la journée : Ubud le 28/09, Uluwatu (temple + danse Kecak) le 29/09 et Nusa Penida le 30/09 — retour à Canggu chaque soir. Journées du 01/10 et 02/10 libres.</p>
     </div>
     <div class="block">
       <h3>Retour de ta copine</h3>
